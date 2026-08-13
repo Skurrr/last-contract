@@ -379,8 +379,8 @@ function rosterRow(c: CampaignState, m: MercState, hooks: CampaignHooks): HTMLEl
     el(
       'div.hh-rr-bars',
       {},
-      bar(cap > 0 ? m.hp / cap : 0, m.hp / Math.max(1, cap) < 0.4 ? 'var(--bad)' : 'var(--lime)', `HP ${m.hp}/${cap}`, 'bar--thin'),
-      bar(m.morale / 100, m.morale < 25 ? 'var(--bad)' : 'var(--cyan)', `Morale ${Math.round(m.morale)}`, 'bar--thin'),
+      bar(cap > 0 ? m.hp / cap : 0, m.hp / Math.max(1, cap) < 0.4 ? 'var(--bad)' : 'var(--lime)', `HP ${m.hp}/${cap}`, 'bar--tall'),
+      bar(m.morale / 100, m.morale < 25 ? 'var(--bad)' : 'var(--cyan)', `Morale ${Math.round(m.morale)}`, 'bar--tall'),
     ),
     el(
       'div.hh-rr-foot',

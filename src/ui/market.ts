@@ -84,12 +84,23 @@ let tab: BuyTab = 'weapon';
 export function marketScreen(c: CampaignState, hooks: CampaignHooks): HTMLElement {
   if (trader === null || !FACTIONS[trader]) trader = defaultTrader(c);
   const fid = trader;
+  // Land on a shelf that is actually stocked — an empty catalogue is a bad first screen.
+  if (buyRows(c, fid, hooks).length === 0) {
+    const stocked = (Object.keys(TAB_LABEL) as BuyTab[]).find((t) => {
+      const was = tab;
+      tab = t;
+      const n = buyRows(c, fid, hooks).length;
+      tab = was;
+      return n > 0;
+    });
+    if (stocked) tab = stocked;
+  }
 
   return el(
     'div.screen.screen--market',
     {},
     navBar(c, 'market', hooks),
-    traderBar(c, fid),
+    traderBar(c, fid, hooks),
     el(
       'div.mk-body',
       {},
@@ -289,12 +300,12 @@ interface RowSpec {
   id: string;
   name: string;
   sub: string;
-  desc?: string;
-  rarity?: 'common' | 'uncommon' | 'rare' | 'exotic';
+  desc?: string | undefined;
+  rarity?: 'common' | 'uncommon' | 'rare' | 'exotic' | undefined;
   price: number;
   stack: boolean;
-  art?: HTMLElement;
-  swatch?: string;
+  art?: HTMLElement | undefined;
+  swatch?: string | undefined;
 }
 
 function itemRow(c: CampaignState, fid: string, hooks: CampaignHooks, spec: RowSpec): HTMLElement {
@@ -311,13 +322,13 @@ function itemRow(c: CampaignState, fid: string, hooks: CampaignHooks, spec: RowS
       {},
       el('div.mk-row-name', { class: spec.rarity ? `rar-${spec.rarity}` : '' }, spec.name),
       el('div.mk-row-sub', {}, spec.sub),
+      el('div.mk-why', {}, priceExplain(c, fid, spec.kind, spec.id, spec.price)),
       spec.desc ? el('div.mk-row-desc', {}, spec.desc) : null,
     ),
     el(
       'div.mk-row-buy',
       {},
       el('div.mk-price', { class: afford ? '' : 'bad' }, money(spec.price)),
-      el('div.mk-why', {}, priceExplain(c, fid, spec.kind, spec.id, spec.price)),
       el(
         'div.btn-row',
         {},
@@ -494,9 +505,9 @@ function sellPanel(c: CampaignState, fid: string, hooks: CampaignHooks): HTMLEle
 interface SellSpec {
   name: string;
   sub: string;
-  rarity?: 'common' | 'uncommon' | 'rare' | 'exotic';
+  rarity?: 'common' | 'uncommon' | 'rare' | 'exotic' | undefined;
   price: number | null;
-  swatch?: string;
+  swatch?: string | undefined;
   have: number;
   onSell: (qty: number) => void;
 }
@@ -550,8 +561,14 @@ function stashWeaponRow(c: CampaignState, fid: string, w: WeaponInstance, hooks:
       'div.mk-row-id',
       {},
       el('div.mk-row-name', { class: def ? `rar-${def.rarity}` : '' }, w.customName ?? def?.name ?? w.defId),
-      el('div.mk-row-sub', {}, def ? `${def.cls} · ${def.ammo}` : 'unknown pattern'),
-      bar(cond / 100, cond < 40 ? 'var(--bad)' : cond < 70 ? 'var(--amber)' : 'var(--lime)', `${Math.round(cond)}%`, 'bar--thin'),
+      el(
+        'div.mk-row-sub',
+        {},
+        def ? `${def.cls} · ${def.ammo} · ` : 'unknown pattern · ',
+        el('span', { class: cond < 40 ? 'bad' : cond < 70 ? 'hot' : 'good' }, `${Math.round(cond)}% condition`),
+      ),
+      bar(cond / 100, cond < 40 ? 'var(--bad)' : cond < 70 ? 'var(--amber)' : 'var(--lime)', undefined, 'bar--thin'),
+      el('div.mk-why', {}, `${Math.round(MARKET_SPREAD * 100)}% of ask × ${Math.round(cond)}% condition`),
       fitted.length > 0
         ? el('div.mk-row-sub', {}, `fitted: ${fitted.map((a) => ATTACHMENTS[a]?.name ?? a).join(', ')}`)
         : null,
@@ -560,7 +577,6 @@ function stashWeaponRow(c: CampaignState, fid: string, w: WeaponInstance, hooks:
       'div.mk-row-buy',
       {},
       el('div.mk-price', { class: price === null ? 'mute' : 'good' }, price === null ? 'not traded' : `+${money(price)}`),
-      el('div.mk-why', {}, `${Math.round(MARKET_SPREAD * 100)}% of ask × ${Math.round(cond)}% condition`),
       el(
         'div.btn-row',
         {},

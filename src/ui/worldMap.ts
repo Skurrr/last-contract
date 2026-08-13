@@ -439,13 +439,17 @@ function squadPanel(c: CampaignState, hooks: CampaignHooks): HTMLElement {
           'span.sqd-text',
           {},
           el('span.sqd-name', {}, def?.callsign ?? m.defId),
-          el('span.sqd-sub', {}, `Lv ${m.level} · ${money(salaryFor(c, m))}/day`),
+          el(
+            'span.sqd-sub',
+            { title: `HP ${m.hp}/${cap} · morale ${Math.round(m.morale)}` },
+            `Lv ${m.level} · ${m.hp}hp · ${money(salaryFor(c, m))}/d`,
+          ),
         ),
       ),
       el(
         'div.sqd-bars',
         {},
-        bar(cap > 0 ? m.hp / cap : 0, m.hp / Math.max(1, cap) < 0.4 ? 'var(--bad)' : 'var(--lime)', `${m.hp}`, 'bar--thin'),
+        bar(cap > 0 ? m.hp / cap : 0, m.hp / Math.max(1, cap) < 0.4 ? 'var(--bad)' : 'var(--lime)', undefined, 'bar--thin'),
         bar(m.morale / 100, m.morale < 25 ? 'var(--bad)' : 'var(--cyan)', undefined, 'bar--thin'),
       ),
       busy ? el('span.chip.chip--info', {}, 'Bench') : null,
@@ -503,7 +507,7 @@ function contractCard(c: CampaignState, ct: Contract, hooks: CampaignHooks, isAc
   const colour = factionColor(ct.employer);
   const daysLeft = ct.deadlineDay - c.day;
   const odds = estimateSuccessChance(c, ct);
-  const oddsClass = odds >= 0.7 ? 'good' : odds >= 0.45 ? 'hot' : 'bad';
+  const oddsClass = odds >= 0.7 ? 'chip--good' : odds >= 0.45 ? 'chip--hot' : 'chip--bad';
 
   const repChips = [
     ...Object.entries(ct.repSuccess).map(([fid, d]) =>
