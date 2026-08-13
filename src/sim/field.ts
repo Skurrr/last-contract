@@ -322,9 +322,19 @@ export function reachable(b: BattleState, u: Unit, budget: number): Map<number, 
 // ─────────────────────────────────────────────────────────────── noise
 
 /**
+ * Reference radius that maps to full intensity. Anything at or above this (an explosion)
+ * saturates the field; everything quieter writes proportionally less.
+ */
+const NOISE_REFERENCE = 40;
+
+/**
  * Noise is the zombie AI's entire world model. A sound writes a decaying gradient into
  * the noise field; zombies walk uphill on it. Suppressors and melee matter because they
  * write a much smaller gradient, not because of a special-case rule.
+ *
+ * Intensity is absolute rather than normalised per-source — otherwise every sound would peak
+ * at 1.0 at its origin, and a footstep next to a zombie would outrank a rifle across the
+ * street. Encoding real loudness is what makes a suppressor a tactical choice.
  */
 export function emitNoise(b: BattleState, at: Vec2, radius: number): void {
   if (radius <= 0) return;
@@ -341,7 +351,7 @@ export function emitNoise(b: BattleState, at: Vec2, radius: number): void {
         const p = trace[i]!;
         if (infoAt(b, p.x, p.y).blocksSight) muffle += 2.5;
       }
-      const v = Math.max(0, (radius - d - muffle) / radius);
+      const v = Math.min(1, Math.max(0, (radius - d - muffle) / NOISE_REFERENCE));
       const i = y * b.w + x;
       if (v > (b.noise[i] ?? 0)) b.noise[i] = v;
     }

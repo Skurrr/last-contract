@@ -1,0 +1,1561 @@
+/* ═══════════════════════════════════════════════════════════════════════════════════════
+   LAST CONTRACT — design system
+   ───────────────────────────────────────────────────────────────────────────────────────
+   Military surplus under a grey sky. Stencilled headings, thin rules, corner-notched
+   panels, a scanline/noise wash over chrome. Crisp edges only: depth comes from layered
+   borders and inset shadows, never from soft gradients.
+
+   The colour tokens below mirror `src/art/palette.ts` one-for-one. If you change a colour
+   there, change it here — the sprites and the chrome must read as one art direction.
+   No external fonts, no external assets, no network. The game runs offline.
+   ═══════════════════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── palette: structural ─────────────────────────────────────────────────────────── */
+  --ink: #12140f;
+  --ink-soft: #1d2118;
+  --steel: #4a5250;
+  --steel-light: #6e7874;
+  --gunmetal: #33383a;
+  --bone: #d8d3bd;
+  --ash: #8d8b7e;
+
+  /* ── palette: military cloth ─────────────────────────────────────────────────────── */
+  --olive: #4a5535;
+  --olive-light: #68764a;
+  --olive-dark: #333c25;
+  --khaki: #8a7f56;
+  --coyote: #9a7a4f;
+  --navy: #2c3a4d;
+  --charcoal: #2a2c2b;
+  --woodland: #3d4a30;
+
+  /* ── palette: signals (reserved, never decorative) ───────────────────────────────── */
+  --blood: #8e1c1c;
+  --blood-bright: #c62828;
+  --rust: #b4571f;
+  --amber: #e8a33d;
+  --gold: #f2c94c;
+  --lime: #7ed957;
+  --cyan: #4fc3e8;
+  --violet: #9b6fd6;
+  --white: #f5f2e8;
+
+  /* ── semantic roles ──────────────────────────────────────────────────────────────── */
+  --bg: #0b0d09;
+  --panel: #191d16;
+  --panel-2: #12160f;
+  --panel-hi: #232819;
+  --line: #333a2a;
+  --line-bright: #4d5740;
+  --line-hot: var(--amber);
+  --text: var(--bone);
+  --text-dim: var(--ash);
+  --text-mute: #6a6b60;
+  --accent: var(--amber);
+  --good: var(--lime);
+  --bad: var(--blood-bright);
+  --crit: var(--gold);
+  --info: var(--cyan);
+
+  /* ── rarity ──────────────────────────────────────────────────────────────────────── */
+  --rarity-common: #9aa39a;
+  --rarity-uncommon: #5fd35f;
+  --rarity-rare: #54a8ff;
+  --rarity-exotic: #ff9d3d;
+
+  /* ── faction identity (mirrors data/factions.ts) ─────────────────────────────────── */
+  --fac-havenhold: #6aa84f;
+  --fac-rust-kings: #c1571f;
+  --fac-ash-order: #8e6bb5;
+  --fac-remnant: #3f6f9e;
+  --fac-free-traders: #d4a441;
+  --fac-neutral: #6b6b63;
+
+  /* ── spacing scale (4px base) ────────────────────────────────────────────────────── */
+  --s0: 2px;
+  --s1: 4px;
+  --s2: 6px;
+  --s3: 8px;
+  --s4: 12px;
+  --s5: 16px;
+  --s6: 24px;
+  --s7: 32px;
+
+  /* ── type scale ──────────────────────────────────────────────────────────────────── */
+  --fs-micro: 9px;
+  --fs-xs: 10px;
+  --fs-sm: 11px;
+  --fs-base: 12px;
+  --fs-md: 14px;
+  --fs-lg: 18px;
+  --fs-xl: 24px;
+  --fs-huge: 40px;
+
+  /* Data, numbers, logs — anything the player reads as a value. */
+  --font-data: ui-monospace, "SFMono-Regular", "Cascadia Mono", "Segoe UI Mono", Menlo,
+    Consolas, "DejaVu Sans Mono", "Liberation Mono", monospace;
+  /* Headings — a strong condensed sans, resolved from whatever the system actually has. */
+  --font-head: "Oswald", "Haettenschweiler", "Arial Narrow Bold", "Arial Narrow",
+    "Roboto Condensed", "Liberation Sans Narrow", "DejaVu Sans Condensed", Impact,
+    system-ui, sans-serif;
+
+  /* ── chrome ──────────────────────────────────────────────────────────────────────── */
+  --notch: 9px;
+  --radius: 0px;
+  --inset: inset 0 0 0 1px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --inset-deep: inset 0 2px 6px rgba(0, 0, 0, 0.6), inset 0 0 0 1px rgba(0, 0, 0, 0.5);
+  --scan: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.20) 0 1px,
+    rgba(255, 255, 255, 0.012) 1px 3px
+  );
+  --grain: repeating-linear-gradient(
+    118deg,
+    rgba(255, 255, 255, 0.018) 0 1px,
+    transparent 1px 4px
+  );
+}
+
+/* ═══════════════════════════════════════════════════ base ═════════════════════════════ */
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-data);
+  font-size: var(--fs-base);
+  line-height: 1.35;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+#app {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Every canvas in this game holds forged pixel art. None of it may ever be smoothed. */
+canvas {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  display: block;
+}
+
+.sprite {
+  display: inline-flex;
+  line-height: 0;
+}
+
+.sprite canvas {
+  image-rendering: pixelated;
+}
+
+::selection {
+  background: var(--olive-light);
+  color: var(--white);
+}
+
+/* Scrollbars, dressed to match. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-bright) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.35);
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--line-bright);
+  border: 1px solid var(--ink);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--khaki);
+}
+
+/* ═══════════════════════════════════════════════ typography ══════════════════════════ */
+
+h1,
+h2,
+h3,
+h4,
+.head {
+  font-family: var(--font-head);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin: 0;
+  color: var(--white);
+}
+
+h1 {
+  font-size: var(--fs-xl);
+  letter-spacing: 0.14em;
+}
+h2 {
+  font-size: var(--fs-lg);
+  letter-spacing: 0.12em;
+}
+h3 {
+  font-size: var(--fs-md);
+}
+h4 {
+  font-size: var(--fs-base);
+}
+
+/* Stencilled section label: uppercase, wide-tracked, with a rule running off to the right. */
+.stencil {
+  font-family: var(--font-head);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  color: var(--khaki);
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  white-space: nowrap;
+}
+
+.stencil::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, var(--line-bright), transparent);
+}
+
+.num {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+.dim {
+  color: var(--text-dim);
+}
+.mute {
+  color: var(--text-mute);
+}
+.hot {
+  color: var(--accent);
+}
+.good {
+  color: var(--good);
+}
+.bad {
+  color: var(--bad);
+}
+.crit {
+  color: var(--crit);
+}
+.info {
+  color: var(--info);
+}
+
+/* ═══════════════════════════════════════════════════ panels ══════════════════════════ */
+
+.panel {
+  position: relative;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  box-shadow: var(--inset);
+  padding: var(--s3);
+  color: var(--text);
+}
+
+/* The texture pass: scanlines plus a diagonal grain. Never interactive. */
+.panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: var(--scan), var(--grain);
+  opacity: 0.55;
+  mix-blend-mode: overlay;
+}
+
+/* Corner-notched variant — the surplus-crate look. Note: clip-path also clips children,
+   so do not put tooltips or popovers inside a notched panel. */
+.panel--notch {
+  clip-path: polygon(
+    var(--notch) 0,
+    100% 0,
+    100% calc(100% - var(--notch)),
+    calc(100% - var(--notch)) 100%,
+    0 100%,
+    0 var(--notch)
+  );
+}
+
+.panel--flush {
+  padding: 0;
+}
+
+.panel--dark {
+  background: var(--panel-2);
+}
+
+.panel--hot {
+  border-color: var(--line-hot);
+  box-shadow: var(--inset), 0 0 0 1px rgba(232, 163, 61, 0.18);
+}
+
+.panel-title {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  padding: var(--s2) var(--s3);
+  border-bottom: 1px solid var(--line);
+  background: linear-gradient(180deg, var(--panel-hi), var(--panel));
+  font-family: var(--font-head);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: var(--khaki);
+}
+
+.panel-body {
+  padding: var(--s3);
+}
+
+.rule {
+  height: 1px;
+  background: var(--line);
+  margin: var(--s2) 0;
+  border: 0;
+}
+
+.rule--strong {
+  background: var(--line-bright);
+}
+
+/* ═══════════════════════════════════════════════════ buttons ═════════════════════════ */
+
+.btn {
+  --btn-face: var(--gunmetal);
+  --btn-edge: var(--line-bright);
+  --btn-ink: var(--text);
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s1);
+  min-height: 24px;
+  padding: var(--s1) var(--s3);
+  background: var(--btn-face);
+  color: var(--btn-ink);
+  border: 1px solid var(--btn-edge);
+  border-radius: var(--radius);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 -2px 0 rgba(0, 0, 0, 0.4);
+  font-family: var(--font-head);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  transition: background 90ms linear, color 90ms linear, border-color 90ms linear;
+}
+
+.btn:hover:not([disabled]) {
+  background: color-mix(in srgb, var(--btn-face) 78%, var(--white));
+  border-color: var(--khaki);
+}
+
+.btn:active:not([disabled]) {
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.55);
+  transform: translateY(1px);
+}
+
+.btn:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.btn[disabled] {
+  cursor: not-allowed;
+  opacity: 0.42;
+  filter: saturate(0.25);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.4);
+}
+
+.btn--primary {
+  --btn-face: var(--olive);
+  --btn-edge: var(--olive-light);
+  --btn-ink: var(--white);
+}
+
+.btn--danger {
+  --btn-face: var(--blood);
+  --btn-edge: var(--blood-bright);
+  --btn-ink: #ffe6e0;
+}
+
+.btn--ghost {
+  --btn-face: transparent;
+  --btn-edge: var(--line);
+  --btn-ink: var(--text-dim);
+  box-shadow: none;
+}
+
+.btn--ghost:hover:not([disabled]) {
+  --btn-ink: var(--text);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.btn--sm {
+  min-height: 20px;
+  padding: 0 var(--s2);
+  font-size: var(--fs-xs);
+  letter-spacing: 0.08em;
+}
+
+.btn--wide {
+  width: 100%;
+}
+
+/* Selected / latched state — an amber bar along the top edge, unmistakable at a glance. */
+.btn.is-active {
+  --btn-face: var(--olive-dark);
+  --btn-edge: var(--accent);
+  --btn-ink: var(--white);
+  box-shadow: inset 0 2px 0 var(--accent), inset 0 -2px 0 rgba(0, 0, 0, 0.4);
+}
+
+.btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s1);
+  align-items: stretch;
+}
+
+.btn-group {
+  display: flex;
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+}
+
+.btn-group > .btn {
+  border: 0;
+  flex: 1 1 auto;
+}
+
+/* AP price tag riding inside a button. */
+.ap-cost {
+  font-family: var(--font-data);
+  font-size: var(--fs-micro);
+  font-weight: 400;
+  letter-spacing: 0;
+  padding: 0 3px;
+  color: var(--gold);
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(242, 201, 76, 0.35);
+}
+
+.btn[disabled] .ap-cost {
+  color: var(--bad);
+  border-color: rgba(198, 40, 40, 0.4);
+}
+
+/* ═══════════════════════════════════════════════ chips & tags ════════════════════════ */
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0 var(--s2);
+  height: 16px;
+  font-size: var(--fs-micro);
+  font-family: var(--font-data);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+.chip--good {
+  color: var(--good);
+  border-color: rgba(126, 217, 87, 0.4);
+  background: rgba(126, 217, 87, 0.1);
+}
+
+.chip--bad {
+  color: var(--bad);
+  border-color: rgba(198, 40, 40, 0.45);
+  background: rgba(198, 40, 40, 0.12);
+}
+
+.chip--hot {
+  color: var(--accent);
+  border-color: rgba(232, 163, 61, 0.45);
+  background: rgba(232, 163, 61, 0.1);
+}
+
+.chip--info {
+  color: var(--info);
+  border-color: rgba(79, 195, 232, 0.4);
+  background: rgba(79, 195, 232, 0.1);
+}
+
+.tag {
+  font-family: var(--font-head);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  padding: 0 var(--s1);
+  border-left: 2px solid currentColor;
+  color: var(--khaki);
+}
+
+/* Rarity — used by loot cards, weapon lists, attachment slots. */
+.rar-common {
+  color: var(--rarity-common);
+}
+.rar-uncommon {
+  color: var(--rarity-uncommon);
+}
+.rar-rare {
+  color: var(--rarity-rare);
+}
+.rar-exotic {
+  color: var(--rarity-exotic);
+}
+
+.rar-border-common {
+  border-color: var(--rarity-common);
+}
+.rar-border-uncommon {
+  border-color: var(--rarity-uncommon);
+}
+.rar-border-rare {
+  border-color: var(--rarity-rare);
+}
+.rar-border-exotic {
+  border-color: var(--rarity-exotic);
+  box-shadow: 0 0 0 1px rgba(255, 157, 61, 0.25);
+}
+
+/* ══════════════════════════════════════════════════ bars ═════════════════════════════ */
+/* Structure emitted by dom.ts: .bar > .bar-fill (+ .bar-label) */
+
+.bar {
+  position: relative;
+  height: 8px;
+  width: 100%;
+  background: #0a0c07;
+  border: 1px solid var(--line);
+  box-shadow: var(--inset-deep);
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  transition: width 140ms linear;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), inset 0 -2px 0 rgba(0, 0, 0, 0.3);
+}
+
+.bar-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--fs-micro);
+  letter-spacing: 0.04em;
+  color: var(--white);
+  text-shadow: 0 1px 0 #000, 0 0 3px #000;
+  pointer-events: none;
+}
+
+.bar--tall {
+  height: 13px;
+}
+
+.bar--thin {
+  height: 4px;
+}
+
+/* Ticked bar: faint segment marks so a bar reads as a quantity, not a smear. */
+.bar--ticked::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    90deg,
+    transparent 0 9px,
+    rgba(0, 0, 0, 0.45) 9px 10px
+  );
+}
+
+/* ════════════════════════════════════════════════ tooltips ═══════════════════════════ */
+
+.tip {
+  position: relative;
+}
+
+.tip::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 120px;
+  max-width: 260px;
+  padding: var(--s2) var(--s3);
+  background: #0d100a;
+  color: var(--text);
+  border: 1px solid var(--line-bright);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.7), var(--inset);
+  font-family: var(--font-data);
+  font-size: var(--fs-xs);
+  line-height: 1.45;
+  letter-spacing: 0;
+  text-transform: none;
+  text-align: left;
+  white-space: pre-wrap;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 60;
+  transition: opacity 80ms linear 120ms;
+}
+
+.tip:hover::after,
+.tip:focus-visible::after {
+  opacity: 1;
+}
+
+.tip--below::after {
+  bottom: auto;
+  top: calc(100% + 6px);
+}
+
+.tip--left::after {
+  left: auto;
+  right: 0;
+  transform: none;
+}
+
+/* ═════════════════════════════════════════════ scrollable lists ══════════════════════ */
+
+.scroll {
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.list-item {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  padding: var(--s1) var(--s2);
+  background: rgba(0, 0, 0, 0.2);
+  border-left: 2px solid transparent;
+  font-size: var(--fs-sm);
+}
+
+.list-item:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.list-item.is-selected {
+  border-left-color: var(--accent);
+  background: rgba(232, 163, 61, 0.1);
+}
+
+.kv {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--s3);
+  font-size: var(--fs-sm);
+  padding: 1px 0;
+}
+
+.kv > span:first-child {
+  color: var(--text-dim);
+}
+
+.kv > span:last-child {
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+/* ═══════════════════════════════════════════════════ modal ═══════════════════════════ */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--s6);
+  background: rgba(6, 8, 5, 0.78);
+  backdrop-filter: blur(2px);
+  animation: fade-in 120ms ease-out;
+}
+
+.modal {
+  position: relative;
+  max-width: min(900px, 92vw);
+  max-height: 88vh;
+  overflow: auto;
+  padding: var(--s5);
+  background: var(--panel);
+  border: 1px solid var(--line-bright);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), var(--inset);
+  clip-path: polygon(
+    16px 0,
+    100% 0,
+    100% calc(100% - 16px),
+    calc(100% - 16px) 100%,
+    0 100%,
+    0 16px
+  );
+}
+
+.modal::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: var(--scan);
+  opacity: 0.4;
+  mix-blend-mode: overlay;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ══════════════════════════════════════════════ tactical HUD ═════════════════════════ */
+/* The HUD is a grid overlay above the battle canvas. The centre column is deliberately
+   empty so the map stays readable; only the panels take pointer events.
+
+   banner  banner  objectives
+   squad   ·       recon
+   squad   actions log                                                                   */
+
+.hud {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  grid-template-columns: 252px minmax(0, 1fr) 336px;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    "banner banner objectives"
+    "squad  center recon"
+    "squad  actions log";
+  gap: var(--s3);
+  padding: var(--s3);
+  pointer-events: none;
+  font-size: var(--fs-base);
+}
+
+.hud > * {
+  pointer-events: auto;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* ── turn banner ─────────────────────────────────────────────────────────────────── */
+
+.hud-banner {
+  grid-area: banner;
+  display: flex;
+  align-items: center;
+  gap: var(--s4);
+  padding: var(--s2) var(--s4);
+  background: linear-gradient(180deg, var(--panel-hi), var(--panel-2));
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--olive-light);
+  box-shadow: var(--inset);
+  justify-self: start;
+  min-width: 420px;
+}
+
+.hud-banner .turn-no {
+  font-family: var(--font-head);
+  font-size: var(--fs-lg);
+  letter-spacing: 0.16em;
+  color: var(--white);
+}
+
+.hud-banner .phase {
+  font-family: var(--font-head);
+  font-size: var(--fs-md);
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--lime);
+}
+
+.hud-banner.is-enemy {
+  border-left-color: var(--blood-bright);
+  background: linear-gradient(180deg, #2a1414, #170d0d);
+  animation: alert-pulse 1.4s ease-in-out infinite;
+}
+
+.hud-banner.is-enemy .phase {
+  color: var(--blood-bright);
+}
+
+.hud-banner.is-over {
+  border-left-color: var(--gold);
+  animation: none;
+}
+
+.hud-banner.is-over .phase {
+  color: var(--gold);
+}
+
+@keyframes alert-pulse {
+  0%,
+  100% {
+    box-shadow: var(--inset);
+  }
+  50% {
+    box-shadow: var(--inset), 0 0 14px rgba(198, 40, 40, 0.35);
+  }
+}
+
+.hud-banner .spacer {
+  flex: 1;
+}
+
+/* ── objectives ──────────────────────────────────────────────────────────────────── */
+
+.hud-objectives {
+  grid-area: objectives;
+  align-self: start;
+  max-height: 34vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.obj {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s2);
+  padding: 3px var(--s1);
+  font-size: var(--fs-sm);
+  line-height: 1.3;
+  border-left: 2px solid var(--line-bright);
+  color: var(--text);
+}
+
+.obj-mark {
+  font-family: var(--font-data);
+  color: var(--text-dim);
+  flex: none;
+  width: 12px;
+  text-align: center;
+}
+
+.obj.is-done {
+  border-left-color: var(--good);
+  color: var(--text-dim);
+}
+
+.obj.is-done .obj-mark {
+  color: var(--good);
+}
+
+.obj.is-failed {
+  border-left-color: var(--bad);
+  color: var(--text-dim);
+  text-decoration: line-through;
+}
+
+.obj.is-failed .obj-mark {
+  color: var(--bad);
+}
+
+/* ── squad strip ─────────────────────────────────────────────────────────────────── */
+
+.hud-squad {
+  grid-area: squad;
+  align-self: end;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  overflow-y: auto;
+  max-height: 100%;
+  padding-right: 2px;
+}
+
+.sq-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: var(--s2);
+  padding: var(--s2);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--steel);
+  box-shadow: var(--inset);
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  transition: border-color 90ms linear, background 90ms linear;
+}
+
+.sq-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: var(--scan);
+  opacity: 0.4;
+  mix-blend-mode: overlay;
+}
+
+.sq-card:hover {
+  background: var(--panel-hi);
+  border-color: var(--line-bright);
+}
+
+.sq-card.is-selected {
+  border-color: var(--accent);
+  border-left-color: var(--accent);
+  background: #232717;
+  box-shadow: var(--inset), 0 0 0 1px rgba(232, 163, 61, 0.35), 0 0 16px rgba(232, 163, 61, 0.12);
+}
+
+.sq-card.is-selected .sq-name {
+  color: var(--accent);
+}
+
+.sq-card.is-down {
+  border-left-color: var(--blood-bright);
+  background: #1e1310;
+}
+
+.sq-card.is-dead {
+  opacity: 0.45;
+  filter: saturate(0.2);
+  cursor: default;
+  border-left-color: var(--gunmetal);
+}
+
+.sq-portrait {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  flex: none;
+  background: var(--ink);
+  border: 1px solid var(--line-bright);
+  box-shadow: var(--inset-deep);
+  overflow: hidden;
+  line-height: 0;
+}
+
+.sq-portrait canvas {
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+}
+
+.sq-level {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  padding: 0 3px;
+  font-family: var(--font-data);
+  font-size: var(--fs-micro);
+  color: var(--gold);
+  background: rgba(0, 0, 0, 0.8);
+  border-top: 1px solid var(--line-bright);
+  border-left: 1px solid var(--line-bright);
+}
+
+.sq-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.sq-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s1);
+  min-width: 0;
+}
+
+.sq-name {
+  font-family: var(--font-head);
+  font-size: var(--fs-base);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--white);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sq-ammo {
+  margin-left: auto;
+  font-family: var(--font-data);
+  font-size: var(--fs-micro);
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.sq-ammo.is-empty {
+  color: var(--bad);
+}
+
+/* AP pips — the single most-read number in the game, so it gets a shape, not a bar. */
+.sq-pips {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-wrap: wrap;
+}
+
+.pip {
+  width: 6px;
+  height: 10px;
+  background: #0a0c07;
+  border: 1px solid var(--line);
+  box-shadow: var(--inset-deep);
+}
+
+.pip.is-full {
+  background: var(--gold);
+  border-color: #8a6a1c;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.pip.is-reserve {
+  background: var(--cyan);
+  border-color: #2a6e85;
+}
+
+.sq-pips .pip-label {
+  margin-left: var(--s1);
+  font-family: var(--font-data);
+  font-size: var(--fs-micro);
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.sq-statuses {
+  display: flex;
+  gap: 2px;
+  flex-wrap: wrap;
+}
+
+.status-icon {
+  width: 16px;
+  height: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-head);
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  border: 1px solid currentColor;
+  background: rgba(0, 0, 0, 0.45);
+  color: var(--bad);
+}
+
+.status-icon.is-good {
+  color: var(--good);
+}
+
+.sq-critical {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s2);
+  padding: 2px var(--s2);
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(198, 40, 40, 0.35) 0 6px,
+    rgba(0, 0, 0, 0.5) 6px 12px
+  );
+  border: 1px solid var(--blood-bright);
+  font-family: var(--font-head);
+  font-size: var(--fs-xs);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #ffd9d3;
+  animation: alert-blink 1s steps(2, end) infinite;
+}
+
+.sq-dead-stamp {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 1px 0;
+  font-family: var(--font-head);
+  font-size: var(--fs-xs);
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--ash);
+  border: 1px solid var(--gunmetal);
+}
+
+@keyframes alert-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+/* ── action bar ──────────────────────────────────────────────────────────────────── */
+
+.hud-actions {
+  grid-area: actions;
+  align-self: end;
+  justify-self: center;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  padding: var(--s2) var(--s3);
+  max-width: 100%;
+}
+
+.hud-actions.is-locked {
+  opacity: 0.55;
+}
+
+.act-weapon {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  font-size: var(--fs-xs);
+  color: var(--text-dim);
+  letter-spacing: 0.04em;
+}
+
+.act-weapon .wname {
+  font-family: var(--font-head);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.act-groups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s3);
+  align-items: flex-start;
+}
+
+.act-group {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.act-group > .stencil {
+  font-size: var(--fs-micro);
+  letter-spacing: 0.18em;
+}
+
+/* ── fire control + shot readout (right column, above the log) ───────────────────── */
+
+.hud-recon {
+  grid-area: recon;
+  align-self: end;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+  overflow-y: auto;
+  max-height: 100%;
+}
+
+.fire-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+
+.aim-row {
+  display: flex;
+  gap: 2px;
+}
+
+.aim-row > .btn {
+  flex: 1;
+  flex-direction: column;
+  gap: 0;
+  padding: 2px 0;
+  line-height: 1.1;
+}
+
+.aim-row .aim-lv {
+  font-size: var(--fs-sm);
+}
+
+.aim-row .aim-ap {
+  font-family: var(--font-data);
+  font-size: var(--fs-micro);
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--gold);
+}
+
+/* The body-part selector is laid out like a figure: head over torso, arms and legs below. */
+.body-fig {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px;
+}
+
+.body-fig .part-head,
+.body-fig .part-torso {
+  grid-column: 1 / -1;
+}
+
+.part {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s2);
+  padding: 2px var(--s2);
+}
+
+.part .part-mul {
+  font-family: var(--font-data);
+  font-size: var(--fs-micro);
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--info);
+}
+
+.part[disabled] .part-mul {
+  color: var(--text-mute);
+}
+
+.hint {
+  font-size: var(--fs-micro);
+  color: var(--text-mute);
+  letter-spacing: 0.02em;
+}
+
+/* Shot readout */
+
+.shot-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s3);
+}
+
+.shot-chance {
+  font-family: var(--font-head);
+  font-size: var(--fs-huge);
+  line-height: 0.9;
+  letter-spacing: 0.02em;
+  color: var(--good);
+  text-shadow: 0 0 12px rgba(126, 217, 87, 0.25);
+}
+
+.shot-chance.is-poor {
+  color: var(--amber);
+  text-shadow: 0 0 12px rgba(232, 163, 61, 0.25);
+}
+
+.shot-chance.is-bad {
+  color: var(--blood-bright);
+  text-shadow: 0 0 12px rgba(198, 40, 40, 0.3);
+}
+
+.shot-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s1);
+  margin-left: auto;
+  justify-content: flex-end;
+  max-width: 60%;
+}
+
+.shot-warn {
+  padding: 2px var(--s2);
+  background: rgba(198, 40, 40, 0.16);
+  border: 1px solid var(--blood-bright);
+  color: #ffd9d3;
+  font-family: var(--font-head);
+  font-size: var(--fs-xs);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  font-size: var(--fs-sm);
+}
+
+.bd-row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--s3);
+  padding: 1px var(--s1);
+  border-bottom: 1px dotted rgba(77, 87, 64, 0.5);
+}
+
+.bd-row:last-child {
+  border-bottom: 0;
+}
+
+.bd-row .bd-label {
+  color: var(--text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bd-row .bd-val {
+  font-variant-numeric: tabular-nums;
+  flex: none;
+}
+
+.bd-row.is-plus .bd-val {
+  color: var(--good);
+}
+
+.bd-row.is-minus .bd-val {
+  color: var(--bad);
+}
+
+.bd-row.is-base .bd-val {
+  color: var(--text);
+}
+
+.bd-row.is-base .bd-label {
+  color: var(--khaki);
+}
+
+.per-round {
+  display: flex;
+  gap: var(--s1);
+  flex-wrap: wrap;
+  font-family: var(--font-data);
+  font-size: var(--fs-micro);
+  color: var(--text-dim);
+}
+
+/* ── combat log ──────────────────────────────────────────────────────────────────── */
+
+.hud-log {
+  grid-area: log;
+  display: flex;
+  flex-direction: column;
+  height: 172px;
+  padding: 0;
+}
+
+.log-scroll {
+  flex: 1;
+  padding: var(--s2) var(--s3);
+  font-size: var(--fs-sm);
+  line-height: 1.4;
+  position: relative;
+  z-index: 1;
+}
+
+.log-line {
+  padding: 1px 0 1px var(--s2);
+  border-left: 2px solid transparent;
+  color: var(--text-dim);
+  word-break: break-word;
+  animation: log-in 140ms ease-out;
+}
+
+.log-line.tone-info {
+  border-left-color: var(--steel);
+}
+
+.log-line.tone-good {
+  border-left-color: var(--good);
+  color: #cfe9bd;
+}
+
+.log-line.tone-bad {
+  border-left-color: var(--bad);
+  color: #eac3bd;
+}
+
+.log-line.tone-crit {
+  border-left-color: var(--gold);
+  color: var(--gold);
+  font-weight: 700;
+}
+
+@keyframes log-in {
+  from {
+    opacity: 0;
+    transform: translateX(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ── barks ───────────────────────────────────────────────────────────────────────── */
+
+.hud-barks {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 40;
+}
+
+.bark {
+  position: absolute;
+  max-width: 260px;
+  padding: var(--s2) var(--s3);
+  background: #10130c;
+  border: 1px solid var(--khaki);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.7), inset 0 0 0 1px rgba(0, 0, 0, 0.6);
+  font-size: var(--fs-sm);
+  line-height: 1.35;
+  color: var(--white);
+  animation: bark-in 130ms ease-out;
+  transition: top 160ms ease-out;
+  clip-path: polygon(
+    6px 0,
+    100% 0,
+    100% calc(100% - 6px),
+    calc(100% - 6px) 100%,
+    0 100%,
+    0 6px
+  );
+}
+
+.bark .bark-who {
+  display: block;
+  font-family: var(--font-head);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--khaki);
+}
+
+/* Sable and the dead speak in stage directions, not sentences. */
+.bark.is-silent {
+  border-color: var(--steel);
+  color: var(--text-dim);
+  font-style: italic;
+}
+
+.bark.is-out {
+  opacity: 0;
+  transition: opacity 220ms linear;
+}
+
+@keyframes bark-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ═══════════════════════════════════════ responsive ══════════════════════════════════ */
+/* Targets 1280×720 → 1920×1080. 1366×768 is the tight case: shed padding, not panels. */
+
+@media (max-width: 1500px) {
+  .hud {
+    grid-template-columns: 236px minmax(0, 1fr) 310px;
+    gap: var(--s2);
+    padding: var(--s2);
+  }
+}
+
+@media (max-height: 820px) {
+  .hud-log {
+    height: 132px;
+  }
+  .hud-objectives {
+    max-height: 26vh;
+  }
+  .sq-card {
+    grid-template-columns: 48px minmax(0, 1fr);
+  }
+  .sq-portrait {
+    width: 48px;
+    height: 48px;
+  }
+  .shot-chance {
+    font-size: 32px;
+  }
+}
+
+@media (max-height: 700px) {
+  :root {
+    --fs-base: 11px;
+    --fs-sm: 10px;
+  }
+  .hud-log {
+    height: 108px;
+  }
+  .hud-banner {
+    min-width: 340px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

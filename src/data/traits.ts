@@ -12,7 +12,7 @@
 import type { TraitDef } from '@/sim/progression';
 
 const defs: TraitDef[] = [
-  // ──────────────────────────────────────────────────────────── positive (14)
+  // ──────────────────────────────────────────────────────────── positive (18)
 
   {
     id: 'lucky',
@@ -127,8 +127,40 @@ const defs: TraitDef[] = [
     cost: 3,
     mods: { scavengeMul: 1.25, lootMul: 1.1 },
   },
+  {
+    id: 'consecrated',
+    name: 'Consecrated',
+    desc: 'You wore Ash Order grey and walked out alive, and their gunmen still cannot bring themselves to put a sight on you.',
+    cost: 7,
+    mods: { moraleRegen: 1 },
+    special: 'consecrated',
+    excludes: ['cursed'],
+  },
+  {
+    id: 'gearhead',
+    name: 'Gearhead',
+    desc: 'You have never met a mechanism you could not talk into working one more time.',
+    cost: 5,
+    mods: { craftQuality: 6, repairMul: 0.85 },
+  },
+  {
+    id: 'haggler',
+    name: 'Haggler',
+    desc: 'You argue over the price of everything, in front of everyone, and the company has quietly never overpaid for anything.',
+    cost: 5,
+    mods: { salaryMul: 0.9, lootMul: 1.1 },
+    special: 'haggler',
+  },
+  {
+    id: 'pathfinder',
+    name: 'Pathfinder',
+    desc: 'You have driven every road in the Basin at night with the lights off, and you know what is at the end of all of them.',
+    cost: 5,
+    mods: { sightRange: 2, moveCostMul: 0.95 },
+    special: 'map_intel',
+  },
 
-  // ──────────────────────────────────────────────────────────── negative (12)
+  // ──────────────────────────────────────────────────────────── negative (18)
 
   {
     id: 'hemophiliac',
@@ -176,7 +208,7 @@ const defs: TraitDef[] = [
     desc: 'The gun jams, the strap breaks, the floor gives way — the squad has stopped calling it coincidence.',
     cost: -5,
     mods: { critChance: -0.03, lootMul: 0.85 },
-    excludes: ['lucky'],
+    excludes: ['lucky', 'consecrated'],
   },
   {
     id: 'slow_learner',
@@ -235,6 +267,45 @@ const defs: TraitDef[] = [
     mods: { stunResist: -0.25, hpMul: 0.9 },
     excludes: ['thick_hide'],
   },
+  {
+    id: 'pacifist',
+    name: 'Pacifist',
+    desc: 'You will not fire the first shot. Once somebody else has, you are as capable as anyone on the line.',
+    cost: -7,
+    mods: { damageMul: 0.9, moraleRegen: 1 },
+    special: 'pacifist',
+  },
+  {
+    id: 'mute',
+    name: 'Mute',
+    desc: 'You do not speak. Nobody knows whether you cannot or simply decided not to, and nobody has managed to ask.',
+    cost: -3,
+    mods: { noiseMul: 0.9, moraleRegen: -1 },
+    special: 'mute',
+  },
+  {
+    id: 'grudge_remnant',
+    name: 'Remnant Grudge',
+    desc: 'They took the truck, the cargo, and your cousin, and handed you a receipt for it. You kept the receipt.',
+    cost: -4,
+    mods: { moraleRegen: -1 },
+    special: 'faction_grudge',
+  },
+  {
+    id: 'green',
+    name: 'Green',
+    desc: 'You have been shooting at the dead since you were eleven and shot at by the living for about a month.',
+    cost: -5,
+    mods: { accuracy: -3, suppressionResist: -0.15, moraleRegen: -1 },
+  },
+  {
+    id: 'hard_of_hearing',
+    name: 'Hard of Hearing',
+    desc: 'Forty years of muzzle blast with the good ear pointed at it — you will not hear the flanker, and you know it.',
+    cost: -3,
+    mods: { interruptChance: -0.06 },
+    special: 'hard_of_hearing',
+  },
 ];
 
 export const TRAITS: Record<string, TraitDef> = Object.fromEntries(defs.map((t) => [t.id, t]));
@@ -252,4 +323,11 @@ export const TRAIT_SPECIALS: readonly string[] = [
   'carry_capacity',
   'claustrophobic',
   'weak_stomach',
+  'consecrated',
+  'haggler',
+  'map_intel',
+  'pacifist',
+  'mute',
+  'faction_grudge',
+  'hard_of_hearing',
 ];

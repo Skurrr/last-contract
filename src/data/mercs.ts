@@ -6,30 +6,12 @@
  * Steroid genuinely cannot shoot, Grandma Vy genuinely cannot run.
  *
  * ─────────────────────────────────────────────────────────────────────────────────────────
- * EXTERNAL IDS REFERENCED HERE (owned by other files — reconcile before wiring up):
- *
- * weapons.ts — startingWeapon / startingSidearm
- *   pistols:      glock-17, m1911, makarov
- *   smg:          mp5, uzi
- *   rifle:        ak-74, m4-carbine, sks
- *   battlerifle:  fn-fal, mosin-nagant
- *   sniper:       remington-700
- *   shotgun:      mossberg-590, sawn-off
- *   lmg:          rpk-lmg
- *   melee:        combat-knife, machete, sledgehammer
- *
- * perks.ts — startingPerks
- *   ammo-sense, called-shot-specialist, cat-fall, cold-blooded, demolitionist, field-surgeon,
- *   ghost, gunsmith-1, inspiring, interrupt-reflex, iron-lungs, low-profile, marksman-1,
- *   quartermaster, scrapper, scrounger, spotter, sprinter, steady-hands, suppressive-fire,
- *   trap-layer, triage, trigger-discipline
- *
- * traits.ts — startingTraits
- *   adrenaline-junkie(−/+), bad-back(−), claustrophobic(−), consecrated(+), deaf-to-fear(+),
- *   eagle-eyed(+), fast-learner(+), frail(−), gearhead(+), graceful(+), green(−), grudge-remnant(−),
- *   haggler(+), hard-of-hearing(−), hemophiliac(−), iron-gut(+), jittery(−), loud-breather(−),
- *   lucky(+), mute(−), pacifist(−), pathfinder(+), steady-nerves(+), strong-back(+),
- *   thin-skinned(−), vain(−)
+ * Every id below resolves against the catalogues that own it: `startingWeapon` /
+ * `startingSidearm` → weapons.ts, `startingPerks` → perks.ts, `startingTraits` → traits.ts.
+ * Two rules when editing a loadout:
+ *   1. A starting perk must satisfy its `requires` attribute minimums — that is what stops
+ *      Steroid from starting with marksmanship perks he could never be offered.
+ *   2. If a starting perk has an `after` chain, every prerequisite must be in the list too.
  * ─────────────────────────────────────────────────────────────────────────────────────────
  */
 import type { Attributes, WeaponClass } from '@/sim/types';
@@ -90,10 +72,10 @@ export const MERCS: Record<string, MercDef> = {
     },
     salary: 200,
     hireCost: 0,
-    startingPerks: ['trigger-discipline'],
-    startingTraits: ['steady-nerves'],
-    startingWeapon: 'ak-74',
-    startingSidearm: 'glock-17',
+    startingPerks: ['trigger_discipline'],
+    startingTraits: ['steady_nerves'],
+    startingWeapon: 'kalash7',
+    startingSidearm: 'servant9',
     portraitSeed: 1009,
     palette: { skin: '#c99a72', hair: '#3a3128', cloth: '#5d6350', accent: '#8e9482' },
     likes: ['hoyt', 'maggie', 'oldmill'],
@@ -116,10 +98,12 @@ export const MERCS: Record<string, MercDef> = {
     },
     salary: 340,
     hireCost: 1200,
-    startingPerks: ['iron-lungs', 'suppressive-fire'],
-    startingTraits: ['strong-back', 'iron-gut', 'vain'],
-    startingWeapon: 'rpk-lmg',
-    startingSidearm: 'makarov',
+    // No marksmanship perks, ever: mm 3 is below every gunfighting requirement except
+    // recoil_discipline, which gates on strength and is exactly how he holds the SAW down.
+    startingPerks: ['recoil_discipline', 'iron_lungs'],
+    startingTraits: ['packhorse', 'iron_gut', 'prima_donna'],
+    startingWeapon: 'grinder',
+    startingSidearm: 'sledge',
     portraitSeed: 2201,
     palette: { skin: '#e0b08a', hair: '#d8c47a', cloth: '#7a5f3a', accent: '#c8452f' },
     likes: ['hoyt', 'chainlink'],
@@ -142,9 +126,9 @@ export const MERCS: Record<string, MercDef> = {
     },
     salary: 520,
     hireCost: 2100,
-    startingPerks: ['field-surgeon', 'triage'],
-    startingTraits: ['pacifist', 'steady-nerves', 'thin-skinned'],
-    startingWeapon: 'glock-17',
+    startingPerks: ['triage', 'field_surgeon'],
+    startingTraits: ['pacifist', 'steady_nerves', 'glass_jaw'],
+    startingWeapon: 'servant9',
     portraitSeed: 3307,
     palette: { skin: '#a9744f', hair: '#2a2320', cloth: '#dcd7c8', accent: '#7fa8c0' },
     likes: ['padre', 'nine', 'hoyt'],
@@ -167,10 +151,10 @@ export const MERCS: Record<string, MercDef> = {
     },
     salary: 610,
     hireCost: 2600,
-    startingPerks: ['spotter', 'marksman-1'],
-    startingTraits: ['eagle-eyed', 'bad-back'],
-    startingWeapon: 'm4-carbine',
-    startingSidearm: 'glock-17',
+    startingPerks: ['marksman_1', 'spotter', 'war_correspondent'],
+    startingTraits: ['eagle_eyed', 'bad_back'],
+    startingWeapon: 'grieve',
+    startingSidearm: 'servant9',
     portraitSeed: 4111,
     palette: { skin: '#8a5a3b', hair: '#1c1a18', cloth: '#4a5a4a', accent: '#d8b24a' },
     likes: ['coyote', 'maggie'],
@@ -193,10 +177,10 @@ export const MERCS: Record<string, MercDef> = {
     },
     salary: 700,
     hireCost: 3000,
-    startingPerks: ['called-shot-specialist', 'steady-hands'],
-    startingTraits: ['hard-of-hearing', 'frail', 'lucky'],
-    startingWeapon: 'remington-700',
-    startingSidearm: 'glock-17',
+    startingPerks: ['marksman_1', 'marksman_2', 'called_shot_specialist'],
+    startingTraits: ['lucky', 'hard_of_hearing', 'bad_back'],
+    startingWeapon: 'longshot',
+    startingSidearm: 'sparrow22',
     portraitSeed: 5023,
     palette: { skin: '#d3a882', hair: '#cfd0cc', cloth: '#6b6f78', accent: '#a03c4a' },
     likes: ['oldmill', 'sable'],
@@ -219,10 +203,10 @@ export const MERCS: Record<string, MercDef> = {
     },
     salary: 450,
     hireCost: 1700,
-    startingPerks: ['gunsmith-1', 'scrapper'],
-    startingTraits: ['gearhead', 'strong-back', 'loud-breather'],
-    startingWeapon: 'sawn-off',
-    startingSidearm: 'sledgehammer',
+    startingPerks: ['scrapper', 'gunsmith_1', 'barricade_builder'],
+    startingTraits: ['gearhead', 'packhorse', 'loud_breather'],
+    startingWeapon: 'sawtooth12',
+    startingSidearm: 'crowbar',
     portraitSeed: 6317,
     palette: { skin: '#6f4630', hair: '#171514', cloth: '#3f4a55', accent: '#e08a2c' },
     likes: ['bricks', 'steroid'],
@@ -245,10 +229,10 @@ export const MERCS: Record<string, MercDef> = {
     },
     salary: 380,
     hireCost: 1400,
-    startingPerks: ['sprinter', 'interrupt-reflex'],
-    startingTraits: ['jittery', 'night-owl', 'adrenaline-junkie'],
-    startingWeapon: 'uzi',
-    startingSidearm: 'makarov',
+    startingPerks: ['sprinter', 'quick_reflexes', 'interrupt_reflex'],
+    startingTraits: ['athletic', 'night_owl', 'nervous_wreck'],
+    startingWeapon: 'chatterbox',
+    startingSidearm: 'servant9',
     portraitSeed: 7229,
     palette: { skin: '#e8c3a4', hair: '#c05a2a', cloth: '#41474f', accent: '#4fd6c0' },
     likes: ['coyote', 'hoyt'],
@@ -271,10 +255,10 @@ export const MERCS: Record<string, MercDef> = {
     },
     salary: 490,
     hireCost: 1900,
-    startingPerks: ['inspiring', 'cold-blooded'],
-    startingTraits: ['consecrated', 'deaf-to-fear'],
-    startingWeapon: 'mosin-nagant',
-    startingSidearm: 'm1911',
+    startingPerks: ['steady_voice', 'inspiring', 'cold_blooded'],
+    startingTraits: ['consecrated', 'deaf_to_fear'],
+    startingWeapon: 'patrolman',
+    startingSidearm: 'deacon',
     portraitSeed: 8443,
     palette: { skin: '#b9805a', hair: '#585149', cloth: '#2e2e33', accent: '#c9c3b0' },
     likes: ['maggie', 'nine'],
@@ -298,9 +282,9 @@ export const MERCS: Record<string, MercDef> = {
     salary: 150,
     hireCost: 300,
     startingPerks: ['scrounger'],
-    startingTraits: ['fast-learner', 'green', 'hemophiliac'],
-    startingWeapon: 'sks',
-    startingSidearm: 'makarov',
+    startingTraits: ['quick_learner', 'green', 'hemophiliac'],
+    startingWeapon: 'homesteader',
+    startingSidearm: 'nailgun',
     portraitSeed: 9151,
     palette: { skin: '#e3b892', hair: '#7a5a30', cloth: '#6a6a52', accent: '#5f9ad8' },
     likes: ['steroid', 'nine', 'sable'],
@@ -323,9 +307,9 @@ export const MERCS: Record<string, MercDef> = {
     },
     salary: 580,
     hireCost: 2400,
-    startingPerks: ['ghost', 'low-profile'],
-    startingTraits: ['mute', 'graceful'],
-    startingWeapon: 'combat-knife',
+    startingPerks: ['knife_work', 'light_step', 'ghost'],
+    startingTraits: ['mute', 'light_footed'],
+    startingWeapon: 'gutterknife',
     startingSidearm: 'machete',
     portraitSeed: 10267,
     palette: { skin: '#8f6a52', hair: '#0f0e10', cloth: '#22262b', accent: '#7d8fa0' },
@@ -349,10 +333,12 @@ export const MERCS: Record<string, MercDef> = {
     },
     salary: 560,
     hireCost: 2300,
-    startingPerks: ['demolitionist', 'trap-layer'],
-    startingTraits: ['claustrophobic', 'iron-gut', 'lucky'],
-    startingWeapon: 'mossberg-590',
-    startingSidearm: 'm1911',
+    // The whole explosives chain: demolitionist needs doorway_solution + trap_layer,
+    // and doorway_solution needs powder_monkey. Explosives 10 carries all four.
+    startingPerks: ['powder_monkey', 'trap_layer', 'doorway_solution', 'demolitionist'],
+    startingTraits: ['claustrophobic', 'iron_gut', 'lucky'],
+    startingWeapon: 'thresher',
+    startingSidearm: 'ranger45',
     portraitSeed: 11383,
     palette: { skin: '#5e3b28', hair: '#231d1a', cloth: '#5a4632', accent: '#f0a63c' },
     likes: ['chainlink', 'twitch'],
@@ -375,10 +361,10 @@ export const MERCS: Record<string, MercDef> = {
     },
     salary: 410,
     hireCost: 1500,
-    startingPerks: ['quartermaster', 'ammo-sense'],
-    startingTraits: ['haggler', 'bad-back', 'night-owl'],
-    startingWeapon: 'fn-fal',
-    startingSidearm: 'm1911',
+    startingPerks: ['quartermaster', 'ammo_sense'],
+    startingTraits: ['haggler', 'bad_back', 'night_owl'],
+    startingWeapon: 'bastion',
+    startingSidearm: 'ranger45',
     portraitSeed: 12497,
     palette: { skin: '#d8b294', hair: '#b8b2a4', cloth: '#4c4f3e', accent: '#9c7c3e' },
     likes: ['vy', 'nine'],
@@ -401,10 +387,10 @@ export const MERCS: Record<string, MercDef> = {
     },
     salary: 470,
     hireCost: 1800,
-    startingPerks: ['scrounger', 'cat-fall'],
-    startingTraits: ['pathfinder', 'grudge-remnant', 'night-owl'],
-    startingWeapon: 'mp5',
-    startingSidearm: 'glock-17',
+    startingPerks: ['scrounger', 'survivalist', 'sure_footed'],
+    startingTraits: ['pathfinder', 'grudge_remnant', 'night_owl'],
+    startingWeapon: 'viper9',
+    startingSidearm: 'servant9',
     portraitSeed: 13591,
     palette: { skin: '#b07a52', hair: '#2b2118', cloth: '#7a4a3a', accent: '#3fa87a' },
     likes: ['twitch', 'deadline'],
