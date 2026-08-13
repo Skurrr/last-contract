@@ -114,8 +114,10 @@ export function resolveWeapon(inst: WeaponInstance): ResolvedWeapon | null {
   let longRangeAccuracy = 0;
   let closeRangePenalty = 0;
   let proneAccuracy = 0;
+  let penetration = def.penetration;
 
   for (const d of deltas) {
+    penetration += d.penetration ?? 0;
     accuracy += d.accuracy ?? 0;
     damageMul *= d.damage ?? 1;
     recoilMul *= d.recoil ?? 1;
@@ -147,7 +149,7 @@ export function resolveWeapon(inst: WeaponInstance): ResolvedWeapon | null {
     magSize: Math.max(1, magSize),
     apCost: Math.max(1, apCost),
     weight,
-    penetration: def.penetration,
+    penetration,
     longRangeAccuracy,
     closeRangePenalty,
     proneAccuracy,
@@ -187,7 +189,9 @@ export function roundsFor(w: ResolvedWeapon, mode: FireMode): number {
 export function shotApCost(u: Unit, w: ResolvedWeapon, plan: ShotPlan): number {
   const mods = unitMods(u);
   const rounds = roundsFor(w, plan.mode);
-  const aimCost = plan.aim * Math.max(1, 1 + mods.aimApCost);
+  // Floored at 0.5 rather than 1 so perks can genuinely make aiming cheaper — the total
+  // is ceiled below, so a discount shows up as fewer AP once it accumulates across levels.
+  const aimCost = plan.aim * Math.max(0.5, 1 + mods.aimApCost);
   const base = w.apCost + mods.shotApCost;
   return Math.max(1, Math.ceil(base + (rounds - 1) + aimCost));
 }

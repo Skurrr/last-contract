@@ -98,7 +98,7 @@ export type WeaponClass =
   | 'melee'
   | 'thrown';
 
-export type AmmoType = '9mm' | '45acp' | '556' | '762' | '12ga' | '338' | 'none';
+export type AmmoType = '9mm' | '45acp' | '556' | '762' | '12ga' | '338' | 'bolt' | 'none';
 
 export type AttachmentSlot =
   | 'optic'
@@ -127,6 +127,8 @@ export interface StatDelta {
   closeRangePenalty?: number;
   /** Accuracy bonus that only applies while prone (bipod). */
   proneAccuracy?: number;
+  /** Additive armour penetration — how AP ammo and hardened penetrators are expressed. */
+  penetration?: number;
 }
 
 export interface AttachmentDef {
