@@ -14,6 +14,7 @@ import { skirmish } from '@/game/deploy';
 import { Hud } from '@/ui/hud';
 import { openCharacterSheet } from '@/ui/characterSheet';
 import { openLevelUp } from '@/ui/levelUp';
+import { openHelp, openHelpOnFirstRun } from '@/ui/help';
 import { el, render } from '@/ui/dom';
 import { sfx } from '@/audio/sfx';
 import type { Attribute } from '@/sim/types';
@@ -236,6 +237,11 @@ window.addEventListener('keydown', (e) => {
       if (u) openCharacterSheet({ unit: u, defId: u.defId });
       break;
     }
+    case '?':
+    case '/':
+    case 'h':
+      openHelp();
+      break;
     default:
       // Aim levels on the number row above the mode keys.
       if (e.key >= '5' && e.key <= '9') c.setAim(Number(e.key) - 5);
@@ -276,6 +282,8 @@ function boot(): void {
   }
   startSkirmish(Math.floor(Math.random() * 1e9), roster);
   requestAnimationFrame(frame);
+  // A tactics game that does not explain itself is a tactics game nobody finishes.
+  openHelpOnFirstRun();
 }
 
 resize();

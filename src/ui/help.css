@@ -1,0 +1,134 @@
+/* Field manual. Uses the tokens and component classes from styles.css. */
+
+.help {
+  width: min(980px, 92vw);
+  max-height: 86vh;
+  overflow-y: auto;
+  padding: var(--s5, 16px);
+  color: var(--bone, #d8d3bd);
+}
+
+.help-title {
+  margin: 0 0 var(--s4, 12px);
+  font-size: var(--fs-xl, 24px);
+  letter-spacing: 0.14em;
+  color: var(--amber, #e8a33d);
+  border-bottom: 1px solid var(--line, #3a4038);
+  padding-bottom: var(--s3, 8px);
+}
+
+.help-cols {
+  display: grid;
+  /* Two wide columns rather than three narrow ones: at three, the notes had less
+     than 200px of text width and clipped mid-word. */
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  gap: var(--s5, 16px);
+  margin-bottom: var(--s5, 16px);
+}
+
+/* Grid children default to min-width:auto and refuse to shrink below their content,
+   which pushed the last column's text past the panel edge. */
+.help-section {
+  min-width: 0;
+}
+
+.help-section h3 {
+  margin: 0 0 var(--s3, 8px);
+  font-size: var(--fs-sm, 12px);
+  letter-spacing: 0.18em;
+  color: var(--cyan, #4fc3e8);
+}
+
+.help-row {
+  display: flex;
+  gap: var(--s3, 8px);
+  align-items: baseline;
+  padding: 3px 0;
+  border-bottom: 1px dotted rgba(120, 130, 115, 0.18);
+}
+
+.help-keys {
+  display: flex;
+  gap: 3px;
+  flex: 0 0 auto;
+  min-width: 76px;
+  flex-wrap: wrap;
+}
+
+.help kbd {
+  display: inline-block;
+  padding: 1px 6px;
+  font-family: var(--font-data, ui-monospace, monospace);
+  font-size: 11px;
+  color: var(--bone, #d8d3bd);
+  background: #1d2118;
+  border: 1px solid var(--line, #3a4038);
+  border-bottom-width: 2px;
+  border-radius: 2px;
+  white-space: nowrap;
+}
+
+.help-desc {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+
+.help-label {
+  font-size: 13px;
+}
+
+.help-note {
+  font-size: 11px;
+  color: var(--text-dim, #8d8b7e);
+  font-style: italic;
+}
+
+.help-rules {
+  border-top: 1px solid var(--line, #3a4038);
+  padding-top: var(--s4, 12px);
+}
+
+.help-rules h3 {
+  margin: 0 0 var(--s3, 8px);
+  font-size: var(--fs-sm, 12px);
+  letter-spacing: 0.18em;
+  color: var(--blood, #c62828);
+}
+
+.help-rule {
+  margin-bottom: var(--s4, 12px);
+  padding-left: var(--s3, 8px);
+  border-left: 2px solid var(--rust, #b4571f);
+}
+
+.help-rule-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--amber, #e8a33d);
+  letter-spacing: 0.04em;
+  margin-bottom: 2px;
+}
+
+.help-rule-body {
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: #b9b6a6;
+  max-width: 78ch;
+}
+
+.help-foot {
+  margin-top: var(--s4, 12px);
+  padding-top: var(--s3, 8px);
+  border-top: 1px solid var(--line, #3a4038);
+  font-size: 11px;
+  color: var(--text-dim, #8d8b7e);
+  text-align: center;
+}
+
+@media (max-height: 760px) {
+  .help-rule-body { font-size: 11.5px; line-height: 1.45; }
+  .help-title { font-size: 19px; }
+}
