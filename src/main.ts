@@ -15,6 +15,7 @@ import { Hud } from '@/ui/hud';
 import { openCharacterSheet } from '@/ui/characterSheet';
 import { openLevelUp } from '@/ui/levelUp';
 import { el, render } from '@/ui/dom';
+import { sfx } from '@/audio/sfx';
 import type { Attribute } from '@/sim/types';
 
 const app = document.getElementById('app');
@@ -140,6 +141,13 @@ function startSkirmish(seed: number, roster: MercState[]): void {
 
 // ─────────────────────────────────────────────────────────────── input
 
+// Browsers keep the audio context suspended until a real gesture, so the first click or
+// key the player makes is what turns the sound on.
+const unlockAudio = (): void => sfx.unlock();
+window.addEventListener('pointerdown', unlockAudio, { once: true });
+window.addEventListener('keydown', unlockAudio, { once: true });
+
+
 canvas.addEventListener('mousemove', (e) => {
   if (!controller) return;
   const r = canvas.getBoundingClientRect();
@@ -211,6 +219,10 @@ window.addEventListener('keydown', (e) => {
     case 'n':
       c.showNoise = !c.showNoise;
       dirty = true;
+      break;
+    case 'm':
+      sfx.muted = !sfx.muted;
+      hud?.logLine(sfx.muted ? 'Sound off.' : 'Sound on.', 'info');
       break;
     case ' ':
       e.preventDefault();

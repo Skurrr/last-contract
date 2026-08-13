@@ -8,6 +8,7 @@
 import { toHex } from '@/art/forge';
 import { PAL } from '@/art/palette';
 import { bark } from '@/data/barks';
+import { sfx, shotSound } from '@/audio/sfx';
 import { MERCS } from '@/data/mercs';
 import type { CombatEvent } from '@/sim/events';
 import type { BattleState, Unit } from '@/sim/types';
@@ -77,6 +78,7 @@ export class EventPlayer {
           this.renderer.addMuzzleFlash(e.from, e.to, size);
           this.fx.addShake(0.6 + size * 0.9);
         }
+        sfx.play(e.tracer ? shotSound(e.cls, e.noise) : 'melee_miss');
         if (u) this.tryBark(b, e.unitId, 'shoot', 0.25);
         break;
       }
@@ -99,6 +101,11 @@ export class EventPlayer {
           this.fx.addHitstop(0.035);
         }
 
+        // Armour reads as a distinct metallic hit, which is how a player learns that
+        // shooting an armoured zombie in the chest is a waste of ammunition.
+        const armoured = u ? (u.armour[e.part] ?? 0) >= 8 : false;
+        sfx.play(armoured ? 'impact_armour' : 'impact_flesh');
+
         if (e.part !== 'torso') {
           this.fx.text(p.x, p.y - TS * 0.9, e.part.toUpperCase(), toHex(PAL.amber), 9, 1.3);
         }
@@ -107,12 +114,14 @@ export class EventPlayer {
 
       case 'miss': {
         const p = centre(e.at.x, e.at.y);
+        sfx.play('impact_wall');
         this.fx.text(p.x + 8, p.y - TS * 0.4, 'miss', 'rgba(200,200,190,0.75)', 9, 1.2);
         this.fx.sparks(p.x, p.y, 0, -1, 4);
         break;
       }
 
       case 'melee': {
+        sfx.play('melee_hit');
         const u = this.unit(b, e.targetId);
         if (u) {
           const p = centre(u.pos.x, u.pos.y);
@@ -127,6 +136,7 @@ export class EventPlayer {
       case 'kill': {
         const p = centre(e.at.x, e.at.y);
         const u = this.unit(b, e.unitId);
+        sfx.play('death');
         this.fx.addShake(e.headshot ? 9 : 5);
         this.fx.addHitstop(e.headshot ? 0.12 : 0.06);
         if (u?.kind === 'zombie') this.fx.rot(p.x, p.y, 34);
@@ -144,6 +154,7 @@ export class EventPlayer {
       case 'critical': {
         const p = centre(e.at.x, e.at.y);
         const u = this.unit(b, e.unitId);
+        sfx.play('defeat');
         this.fx.flash(toHex(PAL.blood), 0.3);
         this.fx.addShake(8);
         this.fx.addHitstop(0.14);
@@ -160,6 +171,7 @@ export class EventPlayer {
 
       case 'stabilised': {
         const p = centre(e.at.x, e.at.y);
+        sfx.play('level_up');
         this.fx.text(p.x, p.y - TS * 0.6, 'STABILISED', toHex(PAL.lime), 12, 1.9);
         this.fx.levelUp(p.x, p.y);
         this.hooks.logLine(`${this.unit(b, e.unitId)?.name ?? 'Merc'} is back on their feet.`, 'good');
@@ -190,6 +202,7 @@ export class EventPlayer {
       }
 
       case 'reload':
+        sfx.play('reload');
         this.fx.text(centre(e.at.x, e.at.y).x, centre(e.at.x, e.at.y).y - TS * 0.5,
           'reload', 'rgba(210,210,200,0.8)', 9, 1.2);
         this.tryBark(b, e.unitId, 'reload', 0.3);
@@ -197,6 +210,7 @@ export class EventPlayer {
 
       case 'jam': {
         const p = centre(e.at.x, e.at.y);
+        sfx.play('jam');
         this.fx.text(p.x, p.y - TS * 0.6, 'JAM!', toHex(PAL.rust), 13, 2);
         this.fx.addShake(2);
         this.hooks.logLine(`${this.unit(b, e.unitId)?.name ?? 'Merc'}'s weapon jammed.`, 'bad');
@@ -206,6 +220,7 @@ export class EventPlayer {
 
       case 'explosion': {
         const p = centre(e.at.x, e.at.y);
+        sfx.play('explosion');
         this.fx.explosion(p.x, p.y, e.radius);
         break;
       }
@@ -220,6 +235,7 @@ export class EventPlayer {
       case 'xp': {
         const p = centre(e.at.x, e.at.y);
         const anchor = this.hooks.portraitAnchor(e.unitId);
+        sfx.play('xp');
         if (anchor) this.fx.xpBurst(p.x, p.y, anchor.x, anchor.y, Math.ceil(e.amount / 6));
         this.fx.text(p.x, p.y - TS * 0.3, `+${e.amount} XP`, toHex(PAL.cyan), 10, 1.4);
         break;
@@ -227,6 +243,7 @@ export class EventPlayer {
 
       case 'levelUp': {
         const p = centre(e.at.x, e.at.y);
+        sfx.play('level_up');
         this.fx.levelUp(p.x, p.y);
         this.fx.addShake(3);
         this.fx.text(p.x, p.y - TS * 1.2, `LEVEL ${e.level}`, toHex(PAL.gold), 17, 2.6);
@@ -238,6 +255,7 @@ export class EventPlayer {
 
       case 'loot': {
         const p = centre(e.at.x, e.at.y);
+        sfx.play('loot');
         this.fx.text(p.x, p.y - TS * 0.6, e.label, toHex(PAL.gold), 11, 1.8);
         break;
       }
@@ -255,6 +273,7 @@ export class EventPlayer {
         // loud event is worth flagging, because it is about to bring company.
         if (e.radius >= 28) {
           const p = centre(e.at.x, e.at.y);
+          sfx.play('zombie_scream');
           this.fx.text(p.x, p.y - TS * 1.4, 'LOUD', toHex(PAL.rust), 12, 2);
           this.hooks.logLine('That was heard for a long way.', 'bad');
         }
@@ -277,6 +296,7 @@ export class EventPlayer {
         break;
 
       case 'outcome':
+        sfx.play(e.outcome === 'victory' ? 'victory' : 'defeat');
         this.hooks.onOutcome(e.outcome);
         break;
     }

@@ -549,6 +549,7 @@ export function fireAt(
     hit: false,
     noise,
     tracer: w.def.cls !== 'melee',
+    cls: w.def.cls,
   });
 
   for (let i = 0; i < rounds; i++) {

@@ -7,7 +7,7 @@ import type { Vec2 } from '@/core/grid';
 import type { BodyPart, Rarity, WeaponInstance } from './types';
 
 export type CombatEvent =
-  | { t: 'shot'; from: Vec2; to: Vec2; unitId: string; hit: boolean; noise: number; tracer: boolean }
+  | { t: 'shot'; from: Vec2; to: Vec2; unitId: string; hit: boolean; noise: number; tracer: boolean; cls: string }
   | { t: 'hit'; unitId: string; at: Vec2; damage: number; part: BodyPart; crit: boolean; overkill: boolean }
   | { t: 'miss'; unitId: string | null; at: Vec2 }
   | { t: 'melee'; unitId: string; targetId: string; damage: number; crit: boolean }

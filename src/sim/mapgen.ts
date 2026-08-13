@@ -140,6 +140,8 @@ interface Ctx {
   base: TerrainKind;
   /** 1 = deployment band: ground stays walkable here, no structures, no props. */
   reserved: Uint8Array;
+  /** 1 = open approach lane: the balancer must not fill these back in. */
+  lanes: Uint8Array;
   /** Interiors worth looting. Recorded by the building helpers. */
   rooms: Rect[];
 }
@@ -891,6 +893,7 @@ const BLOB_CAP: Partial<Record<TerrainKind, number>> = {
   crate: 9,
   car: 9,
   sandbag: 9,
+  rubble: 12,
   tree: 24,
 };
 
@@ -977,6 +980,7 @@ function addClumps(c: Ctx, count: number, props: readonly TerrainKind[]): void {
   for (const p of [...bare, ...fallback]) {
     if (placed >= count) break;
     if (inRoom(c, p.x, p.y) || c.reserved[idx(c, p.x, p.y)] === 1) continue;
+    if (c.lanes[idx(c, p.x, p.y)] === 1) continue;
     if (!isOpen(c.b, p.x, p.y) || openNeighbours(c.b, p.x, p.y) < 7) continue;
     const kind = c.rng.pick(props);
     put(c, p.x, p.y, kind);
@@ -988,6 +992,7 @@ function addClumps(c: Ctx, count: number, props: readonly TerrainKind[]): void {
       const q: Vec2 = { x: at.x + d.x, y: at.y + d.y };
       if (!isOpen(c.b, q.x, q.y) || openNeighbours(c.b, q.x, q.y) < 5) break;
       if (inRoom(c, q.x, q.y) || c.reserved[idx(c, q.x, q.y)] === 1) break;
+      if (c.lanes[idx(c, q.x, q.y)] === 1) break;
       put(c, q.x, q.y, kind);
       at = q;
     }
@@ -1176,8 +1181,9 @@ function carveLanes(c: Ctx, from: Vec2, targets: readonly Vec2[], halfWidth: num
       const cy = (k - cx) / c.w;
       for (let y = cy - halfWidth; y <= cy + halfWidth; y++) {
         for (let x = cx - halfWidth; x <= cx + halfWidth; x++) {
-          if (!inside(c, x, y) || !isProp(c, x, y)) continue;
-          put(c, x, y, groundAround(c, x, y), false);
+          if (!inside(c, x, y)) continue;
+          if (isProp(c, x, y)) put(c, x, y, groundAround(c, x, y), false);
+          if (isOpen(c.b, x, y)) c.lanes[idx(c, x, y)] = 1;
         }
       }
       if (!isOpen(c.b, cx, cy)) put(c, cx, cy, opened(terrainAt(c.b, cx, cy), c.base), false);
@@ -1335,6 +1341,7 @@ function build(opts: MapGenOptions, w: number, h: number, layoutSeed: number): G
     biome: opts.biome,
     base: BIOME_BASE[opts.biome],
     reserved: new Uint8Array(w * h),
+    lanes: new Uint8Array(w * h),
     rooms: [],
   };
 
@@ -1343,13 +1350,16 @@ function build(opts: MapGenOptions, w: number, h: number, layoutSeed: number): G
 
   paintBase(c);
   PAINTERS[opts.biome](c);
+
+  // Break up any prop masses first, then cut three open approaches from the deployment edge
+  // to the far side, then let the balancer fill in *around* the lanes. Doing it in this
+  // order is what stops the map ending up as one corridor through a field of crates.
+  const anchor = edgeAnchor(c, edge);
+  capBlobs(c);
+  carveLanes(c, anchor, farEdgePoints(c, edge), 1);
   balance(c);
 
   // Player squad: a tight cluster on its edge.
-  const anchor = edgeAnchor(c, edge);
-  // Three open approaches from the deployment edge, so the squad has options rather than
-  // one corridor. Done before spawning so the lanes are part of the map, not a scar on it.
-  carveLanes(c, anchor, farEdgePoints(c, edge), 1);
   const cluster = clusterAround(c, anchor, 10);
   if (cluster.length < 6) return null;
   const playerSpawns = cluster.slice(0, 8);

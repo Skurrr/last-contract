@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Typecheck, test, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npx vite build
+
+      # The simulation tests cannot catch a game that fails to boot in a browser, so the
+      # built bundle is actually loaded and played through before anything ships.
+      - name: Install Chromium
+        run: npx playwright install chromium
+
+      - name: Smoke run
+        run: |
+          npx vite preview --port 4173 &
+          npx wait-on http://localhost:4173/last-contract/ --timeout 60000
+          node scripts/smoke.mjs .scratch/ci-shots
+
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-screenshots
+          path: .scratch/ci-shots
+          if-no-files-found: ignore
