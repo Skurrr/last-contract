@@ -32,6 +32,7 @@ import {
   XP_AWARDS,
   xpGain,
 } from './progression';
+import { refreshEnemyAp } from './spawn';
 import {
   STANCE_TABLE,
   type BattleState,
@@ -247,7 +248,10 @@ function beginPhaseFor(b: BattleState, team: Unit['team'], sink: EventSink): voi
       continue;
     }
 
-    u.maxAp = maxApFor(u.attrs, mods);
+    // Mercs derive AP from agility; enemies use the value authored on their def, so a
+    // shambler stays slow and a runner stays fast regardless of their attribute spread.
+    if (u.kind === 'merc') u.maxAp = maxApFor(u.attrs, mods);
+    else refreshEnemyAp(u);
     let ap = u.maxAp;
     if (hasStatus(u, 'stunned')) ap = Math.floor(ap / 2);
     if (hasStatus(u, 'adrenaline')) ap += 2;
@@ -496,8 +500,8 @@ export function createBattle(init: BattleInit): BattleState {
 /** Give every unit its opening AP and stamina. Call once after placing units. */
 export function startBattle(b: BattleState, sink = new EventSink()): void {
   for (const u of b.units) {
-    const mods = unitMods(u);
-    u.maxAp = maxApFor(u.attrs, mods);
+    if (u.kind === 'merc') u.maxAp = maxApFor(u.attrs, unitMods(u));
+    else refreshEnemyAp(u);
     u.ap = u.team === 'player' ? u.maxAp : 0;
     u.stamina = u.maxStamina;
   }

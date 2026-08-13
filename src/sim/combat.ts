@@ -6,7 +6,9 @@
 import { Rng } from '@/core/rng';
 import { chebyshev, dist, facingBetween, type Vec2 } from '@/core/grid';
 import { ATTACHMENTS } from '@/data/attachments';
-import { WEAPONS } from '@/data/weapons';
+// ALL_WEAPONS rather than WEAPONS: the resolver must also find natural attacks (claws, fists),
+// which are deliberately kept out of the market catalogue.
+import { ALL_WEAPONS } from '@/data/index';
 import { PERKS } from '@/data/perks';
 import { TRAITS } from '@/data/traits';
 import { aggregate, xpGain, XP_AWARDS, type Mods } from './progression';
@@ -93,7 +95,7 @@ export interface ResolvedWeapon {
 const EMPTY_DELTA: StatDelta = {};
 
 export function resolveWeapon(inst: WeaponInstance): ResolvedWeapon | null {
-  const def = WEAPONS[inst.defId];
+  const def = ALL_WEAPONS[inst.defId];
   if (!def) return null;
 
   const deltas: StatDelta[] = [];
