@@ -70,6 +70,9 @@ export class BattleController {
     this.renderer = new Renderer(canvas, this.camera, this.fx);
     this.player = new EventPlayer(this.fx, this.renderer, hooks);
 
+    // Open framed on the whole battlefield, then let the player zoom in. Landing at max
+    // zoom on one merc hides the ground, which is the only thing tactics is about.
+    this.camera.setZoom(Math.max(this.camera.fitZoom(), 0.5), true);
     const first = battle.units.find((u) => u.team === 'player' && u.alive);
     if (first) {
       this.selectedId = first.id;
@@ -139,6 +142,7 @@ export class BattleController {
     this.mode = 'move';
     this.plan = { mode: 'single', aim: 0, part: 'torso' };
     this.camera.centerOn(u.pos);
+    this.camera.setZoom(Math.max(this.camera.fitZoom(), 0.5));
     this.invalidate();
   }
 

@@ -147,10 +147,6 @@ export function stanceFromRep(rep: number): FactionStance {
 
 // ─────────────────────────────────────────────────────────────── material bags
 
-export function materialCount(m: Materials, id: MaterialId): number {
-  return m[id] ?? 0;
-}
-
 export function addMaterials(into: Materials, add: Materials): void {
   for (const [k, v] of Object.entries(add) as [MaterialId, number | undefined][]) {
     if (v === undefined || v === 0) continue;

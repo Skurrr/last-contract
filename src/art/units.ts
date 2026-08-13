@@ -494,10 +494,19 @@ function drawPortraitHeadgear(p: Pix, look: UnitLook): void {
   }
 }
 
-export const portraitSprite = memoise(buildPortrait, (seed, look, dead) =>
+const portraitMemo = memoise(buildPortrait, (seed, look, dead) =>
   `p${seed}|${dead}|${look.build}${look.headgear}${look.vest}${look.hairStyle}` +
   `|${look.skin.r},${look.hair.r},${look.cloth.r},${look.cloth.g},${look.cloth.b},${look.accent.r}`,
 );
+
+/**
+ * Head-and-shoulders portrait. `dead` is optional at the call site — memoisation needs the
+ * full argument tuple, so the default is applied here rather than forcing every caller to
+ * pass a flag they rarely care about.
+ */
+export function portraitSprite(seed: number, look: UnitLook, dead = false): Pix {
+  return portraitMemo(seed, look, dead);
+}
 
 /** Portrait for a zombie, used in the bestiary and kill feed. */
 export const zombiePortrait = memoise(

@@ -5,13 +5,8 @@
  * so the map is a zero-sum political board rather than a checklist of allies.
  *
  * External ids referenced here (owned by other data modules):
- *   enemyRoster -> src/data/enemies.ts
- *     haven-militia, haven-rifleman, haven-marksman, haven-wall-gunner, haven-dog-handler,
- *     rust-toll-thug, rust-chainman, rust-scattergunner, rust-torchbearer, rust-baron,
- *     rust-technical-gunner, ash-penitent, ash-censer-bearer, ash-flenser, ash-hymnist,
- *     ash-deacon, remnant-rifleman, remnant-grenadier, remnant-designated-marksman,
- *     remnant-breacher, remnant-sergeant, trader-outrider, trader-caravan-guard,
- *     trader-shotgun-rider
+ *   enemyRoster -> keys of ENEMIES in src/data/enemies.ts. The dead belong to nobody, so no
+ *   zombie appears in any roster.
  */
 
 export type TradeCategory =
@@ -84,13 +79,7 @@ export const FACTIONS: Record<string, FactionDef> = {
     tradeGoods: { food: 0.8, medicine: 1.0, materials: 1.15, ammo: 1.4, intel: 1.1 },
     startingRep: 15,
     contractTypes: ['defend', 'clear', 'escort', 'retrieve'],
-    enemyRoster: [
-      'haven-militia',
-      'haven-rifleman',
-      'haven-marksman',
-      'haven-wall-gunner',
-      'haven-dog-handler',
-    ],
+    enemyRoster: ['militia'],
     allianceReward:
       'Free bunks and hot food between contracts — squad morale recovers twice as fast — ' +
       'and the militia mans your flank on any battle inside Havenhold territory.',
@@ -117,14 +106,7 @@ export const FACTIONS: Record<string, FactionDef> = {
     tradeGoods: { ammo: 0.75, materials: 0.8, attachments: 1.0, weapons: 1.1, fuel: 0.9 },
     startingRep: -10,
     contractTypes: ['assassinate', 'sabotage', 'retrieve', 'clear'],
-    enemyRoster: [
-      'rust-toll-thug',
-      'rust-chainman',
-      'rust-scattergunner',
-      'rust-torchbearer',
-      'rust-technical-gunner',
-      'rust-baron',
-    ],
+    enemyRoster: ['raider', 'raider_veteran'],
     allianceReward:
       'Free passage on the highway — travel between sectors costs half the hours — and their ' +
       'chop shops sell you salvage at cost.',
@@ -152,13 +134,7 @@ export const FACTIONS: Record<string, FactionDef> = {
     tradeGoods: { chems: 0.7, medicine: 1.6, recipes: 1.2, materials: 1.1, food: 1.8 },
     startingRep: 0,
     contractTypes: ['retrieve', 'assassinate', 'escort', 'sabotage'],
-    enemyRoster: [
-      'ash-penitent',
-      'ash-censer-bearer',
-      'ash-flenser',
-      'ash-hymnist',
-      'ash-deacon',
-    ],
+    enemyRoster: ['cultist', 'cult_zealot'],
     allianceReward:
       'The censer-bearers walk your squad through the reservoir ruins unmolested by the ' +
       'dead, and the Order sells you the chem recipes nobody else will write down.',
@@ -185,13 +161,7 @@ export const FACTIONS: Record<string, FactionDef> = {
     tradeGoods: { weapons: 0.85, armour: 0.8, attachments: 0.85, ammo: 1.0, medicine: 1.2 },
     startingRep: 5,
     contractTypes: ['clear', 'defend', 'sabotage', 'assassinate'],
-    enemyRoster: [
-      'remnant-rifleman',
-      'remnant-grenadier',
-      'remnant-designated-marksman',
-      'remnant-breacher',
-      'remnant-sergeant',
-    ],
+    enemyRoster: ['remnant_trooper', 'remnant_marksman'],
     allianceReward:
       'Armoury access at issue price, mil-spec attachments off the shelf, and a two-man ' +
       'fire team attached to your squad on any contract north of the reservoir.',
@@ -230,7 +200,7 @@ export const FACTIONS: Record<string, FactionDef> = {
     },
     startingRep: 20,
     contractTypes: ['escort', 'retrieve', 'clear', 'defend'],
-    enemyRoster: ['trader-outrider', 'trader-caravan-guard', 'trader-shotgun-rider'],
+    enemyRoster: ['trader_guard'],
     allianceReward:
       'The markup drops to nothing, caravans buy your scrap at full value, and Whitlock ' +
       'sells you sector intel before the contracts are posted.',

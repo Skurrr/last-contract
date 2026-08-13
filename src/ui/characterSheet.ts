@@ -330,7 +330,7 @@ function attrMeter(value: number): HTMLElement {
 
 function headerBlock(r: Resolved): HTMLElement {
   const look = lookFromPalette(r.seed, r.def?.palette);
-  const portrait = spriteImg(portraitSprite(r.seed, look).toCanvas(4), 'cs-portrait');
+  const portrait = spriteImg(portraitSprite(r.seed, look, false).toCanvas(4), 'cs-portrait');
 
   const prog = levelProgress(r.xp);
   // The sheet's own level field wins if it disagrees — a Unit may have been levelled by hand.

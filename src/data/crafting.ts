@@ -5,16 +5,14 @@
  * `mechanical` rating to attempt at all. Recipe output is deterministic; improvisation
  * (see `improvisedQuality`) is not, which is where the named one-off guns come from.
  *
- * ── EXTERNAL IDS REFERENCED HERE (owned by other data modules — reconcile these) ──
+ * ── EXTERNAL IDS REFERENCED HERE (reconciled against the real catalogues) ──
  *
- * weapons (src/data/weapons.ts):
- *   pipe-pistol, slam-fire-shotgun, zip-smg, scrap-crossbow, rebar-machete,
- *   breaker-bar, nail-lance
+ * weapons (src/data/weapons.ts) — every improvised recipe builds a real catalogue gun:
+ *   pipecarbine, widowscoach, chatterbox, quietus, nailgun, machete, crowbar
  *
- * attachments (src/data/attachments.ts):
- *   suppressor-improvised, scope-improvised, foregrip-taped, bipod-improvised,
- *   mag-coupler, flashlight-taped, bayonet-improvised, trigger-job,
- *   stock-padded, extended-mag-taped
+ * attachments (src/data/attachments.ts) — the junk-tier half of the attachment list:
+ *   bar_oilcan, opt_kludge, ub_broomgrip, ub_wirebipod, mag_jungleclip, mag_extended,
+ *   ub_lamp, ub_bayonet, stk_recoilpad, int_matchtrigger
  *
  * consumables (src/data/consumables.ts — items that live in Unit.inventory):
  *   bandage, medkit, trauma-kit, molotov, pipe-bomb, nail-bomb, noisemaker,
@@ -340,159 +338,161 @@ export const RECIPES: Record<string, RecipeDef> = {
   },
 
   // ── improvised weapons ─────────────────────────────────────────────────────
-  'pipe-pistol': {
-    id: 'pipe-pistol',
-    name: 'Pipe Pistol',
-    desc: 'One barrel, one chamber, one hand-filed sear. It fires nine times out of ten and that is the pitch.',
-    output: { kind: 'weapon', id: 'pipe-pistol', qty: 1 },
+  // Every recipe here builds a gun that already exists in weapons.ts — the improvised
+  // tier of the catalogue is exactly what a bench in a barn can produce.
+  'pipe-carbine': {
+    id: 'pipe-carbine',
+    name: "Pipe Carbine 'Cough'",
+    desc: 'Two lengths of water pipe, a nail, and one hand-filed sear. It fires nine times out of ten and that is the pitch.',
+    output: { kind: 'weapon', id: 'pipecarbine', qty: 1 },
     cost: { steel: 3, springs: 2, polymer: 1, tape: 2 },
     requiresMechanical: 3,
     days: 2,
   },
-  'slam-fire-shotgun': {
-    id: 'slam-fire-shotgun',
-    name: 'Slam-Fire Shotgun',
-    desc: 'Two pipes, one inside the other, with a nail welded in the closed end. No trigger — you shove it.',
-    output: { kind: 'weapon', id: 'slam-fire-shotgun', qty: 1 },
+  'coach-gun': {
+    id: 'coach-gun',
+    name: 'Cut-Down Coach Gun',
+    desc: 'Both barrels off a farmhouse wall gun, hacksawed to the wood and the triggers wired together. No finesse — one very loud second.',
+    output: { kind: 'weapon', id: 'widowscoach', qty: 1 },
     cost: { steel: 4, scrap: 3, tape: 3 },
     requiresMechanical: 2,
     days: 2,
   },
-  'zip-smg': {
-    id: 'zip-smg',
-    name: 'Zip Gun SMG',
+  chatterbox: {
+    id: 'chatterbox',
+    name: 'Chatterbox',
     desc: 'Open bolt, blowback, a bicycle-brake trigger and a magazine well filed to fit whatever you have. Cycles fast, hits like a slap.',
-    output: { kind: 'weapon', id: 'zip-smg', qty: 1 },
+    output: { kind: 'weapon', id: 'chatterbox', qty: 1 },
     cost: { steel: 5, springs: 4, polymer: 2, tape: 3 },
     requiresMechanical: 6,
     days: 3,
     learnedFrom: 'rust-kings',
   },
-  'scrap-crossbow': {
-    id: 'scrap-crossbow',
-    name: 'Scrap Crossbow',
+  'bolt-thrower': {
+    id: 'bolt-thrower',
+    name: 'Quietus Bolt Thrower',
     desc: 'Leaf-spring prod on a laminated stock. Slow to load, quiet enough that the dead never look up.',
-    output: { kind: 'weapon', id: 'scrap-crossbow', qty: 1 },
+    output: { kind: 'weapon', id: 'quietus', qty: 1 },
     cost: { steel: 3, springs: 3, polymer: 2, tape: 1 },
     requiresMechanical: 5,
     days: 3,
   },
-  'nail-lance': {
-    id: 'nail-lance',
-    name: 'Nail Lance',
-    desc: 'A framing nailer married to a scaffold pole. One-shot, point blank, and the head comes off clean.',
-    output: { kind: 'weapon', id: 'nail-lance', qty: 1 },
+  nailgun: {
+    id: 'nailgun',
+    name: "Roofer's Regret",
+    desc: 'A powder-actuated nailer with the safety nose ground off and the charge doubled. Point blank, and the head comes off clean.',
+    output: { kind: 'weapon', id: 'nailgun', qty: 1 },
     cost: { steel: 2, springs: 2, powder: 2, scrap: 3, tape: 2 },
     requiresMechanical: 5,
     days: 2,
     learnedFrom: 'rust-kings',
   },
-  'rebar-machete': {
-    id: 'rebar-machete',
-    name: 'Rebar Machete',
+  machete: {
+    id: 'machete',
+    name: 'Field Machete',
     desc: 'Leaf spring ground to an edge, wrapped in hose. Chainlink makes a dozen a week and gives most of them away.',
-    output: { kind: 'weapon', id: 'rebar-machete', qty: 1 },
+    output: { kind: 'weapon', id: 'machete', qty: 1 },
     cost: { steel: 2, scrap: 2, tape: 2 },
     requiresMechanical: 2,
     days: 1,
   },
-  'breaker-bar': {
-    id: 'breaker-bar',
-    name: 'Breaker Bar',
+  'pry-bar': {
+    id: 'pry-bar',
+    name: 'Pry Bar',
     desc: 'Four feet of pipe with a hydrant wrench welded on. Heavy, silent, and it opens doors as well as skulls.',
-    output: { kind: 'weapon', id: 'breaker-bar', qty: 1 },
+    output: { kind: 'weapon', id: 'crowbar', qty: 1 },
     cost: { steel: 4, scrap: 2, tape: 1 },
     requiresMechanical: 3,
     days: 1,
   },
 
   // ── duct-taped attachments ─────────────────────────────────────────────────
-  'suppressor-improvised': {
-    id: 'suppressor-improvised',
-    name: 'Oil-Filter Suppressor',
+  'oil-filter-can': {
+    id: 'oil-filter-can',
+    name: 'Oil-Filter Can',
     desc: 'An automotive filter on a hand-cut thread adapter, packed with steel wool. Good for maybe forty rounds.',
-    output: { kind: 'attachment', id: 'suppressor-improvised', qty: 1 },
+    output: { kind: 'attachment', id: 'bar_oilcan', qty: 1 },
     cost: { steel: 3, scrap: 3, polymer: 1, tape: 2 },
     requiresMechanical: 5,
     days: 2,
   },
-  'scope-improvised': {
-    id: 'scope-improvised',
-    name: 'Taped Scope',
+  'scope-kludge': {
+    id: 'scope-kludge',
+    name: 'Spotting-Scope Kludge',
     desc: 'A spotting-scope objective in a pipe tube, zeroed with shims and held on with hose clamps. It holds zero until it does not.',
-    output: { kind: 'attachment', id: 'scope-improvised', qty: 1 },
+    output: { kind: 'attachment', id: 'opt_kludge', qty: 1 },
     cost: { optics: 2, steel: 2, tape: 3 },
     requiresMechanical: 5,
     days: 2,
   },
-  'foregrip-taped': {
-    id: 'foregrip-taped',
-    name: 'Taped Foregrip',
-    desc: 'A chair leg, shaped, and four wraps of tape. Ugly, effective, universally mocked.',
-    output: { kind: 'attachment', id: 'foregrip-taped', qty: 1 },
+  'broom-grip': {
+    id: 'broom-grip',
+    name: 'Taped Broom Grip',
+    desc: 'Ten centimetres of broom handle, shaped, and four wraps of tape. Ugly, effective, universally mocked.',
+    output: { kind: 'attachment', id: 'ub_broomgrip', qty: 1 },
     cost: { polymer: 2, tape: 2 },
     requiresMechanical: 2,
     days: 1,
   },
-  'bipod-improvised': {
-    id: 'bipod-improvised',
-    name: 'Scrap Bipod',
-    desc: 'Two folding tent poles and a spring detent. Turns any rifle into a very good prone rifle.',
-    output: { kind: 'attachment', id: 'bipod-improvised', qty: 1 },
+  'wire-bipod': {
+    id: 'wire-bipod',
+    name: 'Wire Bipod',
+    desc: 'Coat-hanger legs bent over a knee and taped at the collar. Turns any rifle into a passable prone rifle.',
+    output: { kind: 'attachment', id: 'ub_wirebipod', qty: 1 },
     cost: { steel: 2, springs: 2, tape: 1 },
     requiresMechanical: 4,
     days: 1,
   },
-  'mag-coupler': {
-    id: 'mag-coupler',
-    name: 'Magazine Coupler',
+  'jungle-clip': {
+    id: 'jungle-clip',
+    name: 'Jungle-Taped Pair',
     desc: 'Two magazines taped jaw to jaw. Halves your reload and doubles the chance of a lipful of mud.',
-    output: { kind: 'attachment', id: 'mag-coupler', qty: 1 },
+    output: { kind: 'attachment', id: 'mag_jungleclip', qty: 1 },
     cost: { tape: 3, polymer: 1 },
     requiresMechanical: 1,
     days: 1,
   },
-  'extended-mag-taped': {
-    id: 'extended-mag-taped',
-    name: 'Welded Extension',
+  'extended-mag': {
+    id: 'extended-mag',
+    name: 'Extended Magazine',
     desc: 'A magazine body cut and welded onto another, with a longer spring drawn to suit.',
-    output: { kind: 'attachment', id: 'extended-mag-taped', qty: 1 },
+    output: { kind: 'attachment', id: 'mag_extended', qty: 1 },
     cost: { steel: 2, springs: 3, polymer: 1, tape: 1 },
     requiresMechanical: 5,
     days: 1,
   },
-  'flashlight-taped': {
-    id: 'flashlight-taped',
-    name: 'Taped Light',
-    desc: 'A salvaged LED torch and a pressure switch on the foregrip. Lights the room and tells the room where you are.',
-    output: { kind: 'attachment', id: 'flashlight-taped', qty: 1 },
+  'barrel-lamp': {
+    id: 'barrel-lamp',
+    name: 'Barrel Lamp',
+    desc: 'A salvaged LED torch and a pressure switch clamped under the handguard. Lights the room and tells the room where you are.',
+    output: { kind: 'attachment', id: 'ub_lamp', qty: 1 },
     cost: { electronics: 2, polymer: 1, tape: 2 },
     requiresMechanical: 4,
     days: 1,
   },
-  'bayonet-improvised': {
-    id: 'bayonet-improvised',
-    name: 'Lashed Bayonet',
-    desc: 'A kitchen knife hose-clamped under the barrel. Sable thinks this is funny; Sable is usually right.',
-    output: { kind: 'attachment', id: 'bayonet-improvised', qty: 1 },
+  'bayonet-lug': {
+    id: 'bayonet-lug',
+    name: 'Bayonet Lug & Blade',
+    desc: 'A cut-down kitchen knife on a lug brazed under the barrel. Sable thinks this is funny; Sable is usually right.',
+    output: { kind: 'attachment', id: 'ub_bayonet', qty: 1 },
     cost: { steel: 2, scrap: 1, tape: 2 },
     requiresMechanical: 2,
     days: 1,
   },
-  'stock-padded': {
-    id: 'stock-padded',
-    name: 'Padded Stock',
-    desc: 'Boat foam and inner tube over a cut-down butt. Costs nothing, and your shoulder stops flinching by round three.',
-    output: { kind: 'attachment', id: 'stock-padded', qty: 1 },
+  'recoil-pad': {
+    id: 'recoil-pad',
+    name: 'Recoil Pad',
+    desc: 'Boat foam and inner tube over a slab cut from a tractor seat. Costs nothing, and your shoulder stops flinching by round three.',
+    output: { kind: 'attachment', id: 'stk_recoilpad', qty: 1 },
     cost: { polymer: 3, tape: 2 },
     requiresMechanical: 3,
     days: 1,
   },
   'trigger-job': {
     id: 'trigger-job',
-    name: 'Match Trigger Job',
+    name: 'Match Trigger Group',
     desc: 'Stone the sear, lighten the spring, polish the engagement. An armourer’s trick, and the Remnant do not teach it cheaply.',
-    output: { kind: 'attachment', id: 'trigger-job', qty: 1 },
+    output: { kind: 'attachment', id: 'int_matchtrigger', qty: 1 },
     cost: { springs: 4, steel: 2, optics: 1 },
     requiresMechanical: 8,
     days: 3,

@@ -257,6 +257,7 @@ export function spawnEnemy(defId: string, pos: Vec2, seed: number): Unit {
     alive: true,
     critical: false,
     criticalTurns: 0,
+    ...(def.special === 'low_profile' ? { naturalProne: true } : {}),
   };
 }
 

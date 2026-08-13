@@ -174,7 +174,9 @@ export const AP_DIAG = 3;
 export function stepCost(bs: BattleState, u: Unit, from: Vec2, to: Vec2): number {
   const base = isDiagonal({ x: to.x - from.x, y: to.y - from.y }) ? AP_DIAG : AP_ORTHO;
   const terrain = infoAt(bs, to.x, to.y).moveCost;
-  const stanceMul = u.stance === 'prone' ? 3 : u.stance === 'crouched' ? 1.5 : 1;
+  // A natural crawler pays no prone penalty — dragging itself along IS its walking pace.
+  const stanceMul =
+    u.stance === 'prone' ? (u.naturalProne ? 1 : 3) : u.stance === 'crouched' ? 1.5 : 1;
   const hobbled = u.statuses.some((s) => s.kind === 'hobbled') ? 2 : 1;
   return Math.ceil((base + terrain) * stanceMul * hobbled);
 }

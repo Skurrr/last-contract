@@ -73,18 +73,18 @@ const BIOME_BASE: Record<SectorBiome, TerrainKind> = {
  * killing field and none is a maze; the exact number is per-biome character.
  */
 const COVER_BAND: Record<SectorBiome, readonly [number, number]> = {
-  village: [0.20, 0.36],
-  farmland: [0.12, 0.26],
-  woods: [0.45, 0.72],
-  industrial: [0.22, 0.40],
-  highway: [0.22, 0.40],
+  village: [0.20, 0.44],
+  farmland: [0.18, 0.36],
+  woods: [0.50, 0.82],
+  industrial: [0.22, 0.42],
+  highway: [0.24, 0.44],
   ruins: [0.30, 0.52],
-  military: [0.22, 0.40],
+  military: [0.24, 0.44],
   swamp: [0.14, 0.30],
 };
 
 /** Walkable-tile fraction band. Kept well inside the 0.45–0.9 sanity range. */
-const WALK_BAND: readonly [number, number] = [0.55, 0.87];
+const WALK_BAND: readonly [number, number] = [0.55, 0.88];
 
 /** Props the balancer may clump together when a biome comes out too bare. */
 const FILLER_COVER: Record<SectorBiome, readonly TerrainKind[]> = {
@@ -334,6 +334,7 @@ function scatter(c: Ctx, count: number, k: TerrainKind, margin = 0): void {
   for (let i = 0; i < count; i++) {
     const x = c.rng.int(margin, c.w - 1 - margin);
     const y = c.rng.int(margin, c.h - 1 - margin);
+    if (inRoom(c, x, y)) continue;
     put(c, x, y, k);
   }
 }
@@ -347,7 +348,8 @@ function clumps(c: Ctx, count: number, k: TerrainKind, margin = 1): void {
     let x = c.rng.int(margin, c.w - 1 - margin);
     let y = c.rng.int(margin, c.h - 1 - margin);
     for (let n = c.rng.int(2, 5); n > 0; n--) {
-      put(c, x, y, k);
+      // Never indoors — a tree growing through a kitchen is the classic generator tell.
+      if (!inRoom(c, x, y)) put(c, x, y, k);
       const d = c.rng.pick(DIRS8);
       x += d.x;
       y += d.y;
@@ -375,7 +377,7 @@ function genVillage(c: Ctx): void {
 
   // Plots laid out along the road, alternating sides.
   let placed = 0;
-  for (let attempt = 0; attempt < 90 && placed < 7; attempt++) {
+  for (let attempt = 0; attempt < 120 && placed < 9; attempt++) {
     const p = spine[c.rng.int(3, spine.length - 4)]!;
     const side = c.rng.chance(0.5) ? 1 : -1;
     const dist = c.rng.int(4, 11);
@@ -387,14 +389,14 @@ function genVillage(c: Ctx): void {
     if (!rectFree(c, r, 3)) continue;
     placeBuilding(c, r, { doors: c.rng.int(1, 2), windows: c.rng.int(3, 5), partition: true });
     // Garden fence around the plot, with gaps so it channels rather than walls off.
-    if (c.rng.chance(0.55)) {
-      strokeRect(c, { x: r.x - 2, y: r.y - 2, w: r.w + 4, h: r.h + 4 }, 'fence', 0.55);
+    if (c.rng.chance(0.75)) {
+      strokeRect(c, { x: r.x - 2, y: r.y - 2, w: r.w + 4, h: r.h + 4 }, 'fence', 0.2);
     }
     placed++;
   }
 
-  clumps(c, c.rng.int(4, 7), 'tree');
-  clumps(c, c.rng.int(2, 3), 'car');
+  clumps(c, c.rng.int(5, 9), 'tree');
+  clumps(c, c.rng.int(2, 4), 'car');
 }
 
 // ── farmland ──────────────────────────────────────────────────────────────────
@@ -413,7 +415,7 @@ function genFarmland(c: Ctx): void {
         put(c, x, y, band % 2 === 0 ? 'dirt' : 'grass', false);
       }
     }
-    strokeRect(c, r, 'fence', 0.62);
+    strokeRect(c, r, 'fence', 0.3);
   }
 
   // The barn is the one hard piece of cover on the whole map.
@@ -452,12 +454,16 @@ function genFarmland(c: Ctx): void {
 
 function genWoods(c: Ctx): void {
   // Thickets first, then clearings cut back through them: the negative space is the map.
-  const thickets = c.rng.int(30, 44);
-  for (let i = 0; i < thickets; i++) {
-    blob(c, c.rng.int(0, c.w - 1), c.rng.int(0, c.h - 1), c.rng.float(2.5, 5.5), 'tree', 0.78);
+  // Jittered grid, not pure scatter: random placement leaves bald patches the size of a
+  // field, and an empty half-map does not read as woods.
+  for (let gy = 0; gy < c.h; gy += 4) {
+    for (let gx = 0; gx < c.w; gx += 4) {
+      if (c.rng.chance(0.15)) continue;
+      blob(c, gx + c.rng.int(0, 3), gy + c.rng.int(0, 3), c.rng.float(1.5, 2.5), 'tree', 0.85);
+    }
   }
 
-  const clearings = c.rng.int(6, 9);
+  const clearings = c.rng.int(3, 5);
   for (let i = 0; i < clearings; i++) {
     const vertical = c.rng.chance(0.5);
     const a: Vec2 = vertical
@@ -466,12 +472,12 @@ function genWoods(c: Ctx): void {
     const bpt: Vec2 = vertical
       ? { x: c.rng.int(2, c.w - 3), y: c.h - 1 }
       : { x: c.w - 1, y: c.rng.int(2, c.h - 3) };
-    paintWinding(c, a, bpt, c.rng.int(3, 5), 'grass', 5, true);
+    paintWinding(c, a, bpt, c.rng.int(2, 3), 'grass', 3, true);
   }
 
   // Glades — the few places a firefight can actually open up.
-  for (let i = 0; i < c.rng.int(2, 4); i++) {
-    stamp(c, c.rng.int(6, c.w - 7), c.rng.int(6, c.h - 7), c.rng.float(3.5, 5.5), 'grass', true);
+  for (let i = 0; i < c.rng.int(1, 2); i++) {
+    stamp(c, c.rng.int(6, c.w - 7), c.rng.int(6, c.h - 7), c.rng.float(2.5, 3.5), 'grass', true);
   }
 
   for (let i = 0; i < c.rng.int(4, 8); i++) {
@@ -496,7 +502,7 @@ function genIndustrial(c: Ctx): void {
   // Fenced yard with gates on every side.
   const inset = c.rng.int(2, 4);
   const yard: Rect = { x: inset, y: inset, w: c.w - inset * 2, h: c.h - inset * 2 };
-  strokeRect(c, yard, 'fence');
+  strokeRect(c, yard, 'fence', 0.12);
   for (let g = 0; g < 6; g++) {
     const p = c.rng.pick(perimeter(yard));
     for (let d = -1; d <= 1; d++) {
@@ -506,9 +512,9 @@ function genIndustrial(c: Ctx): void {
 
   // Warehouse shells: big concrete boxes with roll-up bay doors punched out.
   let sheds = 0;
-  for (let attempt = 0; attempt < 60 && sheds < 3; attempt++) {
-    const bw = c.rng.int(12, 18);
-    const bh = c.rng.int(8, 12);
+  for (let attempt = 0; attempt < 80 && sheds < 4; attempt++) {
+    const bw = c.rng.int(9, 15);
+    const bh = c.rng.int(7, 10);
     const r: Rect = {
       x: c.rng.int(inset + 2, c.w - bw - inset - 2),
       y: c.rng.int(inset + 2, c.h - bh - inset - 2),
@@ -772,7 +778,7 @@ function genSwamp(c: Ctx): void {
   for (let i = 0; i < c.rng.int(4, 7); i++) {
     blob(c, c.rng.int(1, c.w - 2), c.rng.int(1, c.h - 2), c.rng.float(1.5, 3), 'rubble', 0.6);
   }
-  clumps(c, c.rng.int(7, 12), 'tree', 0);
+  clumps(c, c.rng.int(15, 22), 'tree', 0);
 
   // A rotting shack on stilts gives the map one interior.
   if (c.rng.chance(0.7)) {
@@ -853,13 +859,35 @@ const inRoom = (c: Ctx, x: number, y: number): boolean =>
   c.rooms.some((r) => x >= r.x - 1 && x < r.x + r.w + 1 && y >= r.y - 1 && y < r.y + r.h + 1);
 
 /**
- * A building's shell. The balancer may thin the clutter inside a room, but never the walls,
- * doors or windows — deleting those is how a generator ends up with roofless nonsense.
+ * Anything the balancer must not touch: a building's shell and its contents, a motor pool's
+ * wrecks, a warehouse's crates. Deleting those leaves roofless nonsense and empty sheds.
+ * Rubble is exempt because in `ruins` it *is* the interior, and thinning it is legitimate.
  */
-const isShell = (c: Ctx, x: number, y: number): boolean => {
-  const k = terrainAt(c.b, x, y);
-  return (k === 'wall' || k === 'door' || k === 'window') && inRoom(c, x, y);
-};
+const isProtected = (c: Ctx, x: number, y: number): boolean =>
+  terrainAt(c.b, x, y) !== 'rubble' && inRoom(c, x, y);
+
+/**
+ * The ground to leave behind when a prop is removed — taken from what surrounds it, so
+ * clearing a crate inside a warehouse leaves concrete rather than a dirt patch indoors.
+ */
+function groundAround(c: Ctx, x: number, y: number): TerrainKind {
+  const tally = new Map<TerrainKind, number>();
+  for (const d of DIRS8) {
+    if (!inside(c, x + d.x, y + d.y)) continue;
+    const k = terrainAt(c.b, x + d.x, y + d.y);
+    if (!TERRAIN[k].walkable || k === 'rubble' || k === 'door' || k === 'water') continue;
+    tally.set(k, (tally.get(k) ?? 0) + 1);
+  }
+  let best: TerrainKind = c.base;
+  let bestN = 0;
+  for (const [k, n] of tally) {
+    if (n > bestN) {
+      best = k;
+      bestN = n;
+    }
+  }
+  return best;
+}
 
 /** How many currently-uncovered walkable tiles would become covered if `p` were blocked. */
 function newExposure(c: Ctx, p: Vec2): number {
@@ -909,34 +937,52 @@ function balance(c: Ctx): void {
     }
     return;
   }
+
+  // The two knobs genuinely trade off (every blocker both blocks a tile and covers eight),
+  // so the loop can end mid-swing. Cover gets the last word — it is the one a player feels —
+  // as long as walkability stays inside the hard 0.45–0.9 limit.
+  for (let round = 0; round < 6; round++) {
+    const s = measure(c.b);
+    if (s.coverFrac <= coverHi || s.walkFrac > 0.885) break;
+    stripIsolatedCover(c, Math.ceil(((s.coverFrac - coverHi) * s.walkable) / 5) + 4);
+  }
 }
 
 /**
- * Block more ground while exposing as little of it to cover as possible: fill the concave
- * pockets of masses that already exist, so a ragged tree line becomes a solid stand rather
- * than the map growing new isolated props. This is how an open biome reaches the walkable
- * band without its cover-adjacency running away.
+ * Block more ground while exposing as little of it to cover as possible.
+ *
+ * The good move is closing a gap in something that already exists — the missing plank in a
+ * fence, the hole in a wall. Both neighbours already cover the tiles around it, so the map
+ * loses a walkable tile and gains almost no cover-adjacency, and it reads as a repair
+ * rather than as a new prop. Everything else is spaced out, because pouring fills into the
+ * best pocket is exactly how a fence line turns into a featureless slab.
  */
 function thicken(c: Ctx, count: number): void {
-  let done = 0;
-  for (let pass = 0; pass < 5 && done < count; pass++) {
-    const cands: { p: Vec2; score: number }[] = [];
-    for (let y = 0; y < c.h; y++) {
-      for (let x = 0; x < c.w; x++) {
+  const placed: Vec2[] = [];
+
+  for (let pass = 0; pass < 8 && placed.length < count; pass++) {
+    const cands: { p: Vec2; score: number; gap: boolean }[] = [];
+    for (let y = 1; y < c.h - 1; y++) {
+      for (let x = 1; x < c.w - 1; x++) {
         if (!isOpen(c.b, x, y) || inRoom(c, x, y) || c.reserved[idx(c, x, y)] === 1) continue;
+        const gap =
+          (!isOpen(c.b, x - 1, y) && !isOpen(c.b, x + 1, y)) ||
+          (!isOpen(c.b, x, y - 1) && !isOpen(c.b, x, y + 1));
         const hugging = 8 - openNeighbours(c.b, x, y);
         if (hugging < 2) continue;
-        // Best tiles are deep in a pocket (high `hugging`) and expose nothing new.
-        cands.push({ p: { x, y }, score: hugging * 2 - newExposure(c, { x, y }) });
+        cands.push({ p: { x, y }, score: (gap ? 12 : 0) + hugging - 2 * newExposure(c, { x, y }), gap });
       }
     }
     if (cands.length === 0) return;
     c.rng.shuffle(cands);
     cands.sort((a, z) => z.score - a.score);
 
-    const take = Math.max(1, Math.min(count - done, Math.ceil(cands.length / 3)));
-    for (const { p } of cands.slice(0, take)) {
-      // Copy the mass we are extending so the fill still reads as that feature.
+    let before = placed.length;
+    for (const { p, gap } of cands) {
+      if (placed.length >= count) break;
+      // Gap-closers are constrained by the line they sit in and cannot blob; everything
+      // else keeps its distance.
+      if (!gap && placed.some((q) => chebyshev(p, q) < 2)) continue;
       let kind: TerrainKind = 'rubble';
       for (const d of DIRS4) {
         const k = terrainAt(c.b, p.x + d.x, p.y + d.y);
@@ -946,8 +992,9 @@ function thicken(c: Ctx, count: number): void {
         }
       }
       put(c, p.x, p.y, kind);
-      done++;
+      placed.push(p);
     }
+    if (placed.length === before) return;
   }
 }
 
@@ -976,10 +1023,10 @@ function clearBlockers(c: Ctx, count: number): void {
   const cands: Vec2[] = [];
   for (let y = 0; y < c.h; y++) {
     for (let x = 0; x < c.w; x++) {
-      if (!isOpen(c.b, x, y) && !inRoom(c, x, y)) cands.push({ x, y });
+      if (!isOpen(c.b, x, y) && !isProtected(c, x, y)) cands.push({ x, y });
     }
   }
-  for (const p of c.rng.shuffle(cands).slice(0, count)) put(c, p.x, p.y, c.base, false);
+  for (const p of c.rng.shuffle(cands).slice(0, count)) put(c, p.x, p.y, groundAround(c, p.x, p.y), false);
 }
 
 /**
@@ -992,17 +1039,21 @@ function stripIsolatedCover(c: Ctx, count: number): void {
   for (let y = 0; y < c.h; y++) {
     for (let x = 0; x < c.w; x++) {
       if (TERRAIN[terrainAt(c.b, x, y)].cover === 0) continue;
-      if (inRoom(c, x, y)) continue;
+      if (isProtected(c, x, y)) continue;
       let neighbours = 0;
       for (const d of DIRS8) {
         if (TERRAIN[terrainAt(c.b, x + d.x, y + d.y)].cover > 0) neighbours++;
       }
-      cands.push({ p: { x, y }, neighbours });
+      // Fences and sandbags are placed on purpose and carry the biome's read, so they are
+      // thinned only after the loose trees, crates and wrecks have gone.
+      const k = terrainAt(c.b, x, y);
+      const deliberate = k === 'fence' || k === 'sandbag' ? 3 : 0;
+      cands.push({ p: { x, y }, neighbours: neighbours + deliberate });
     }
   }
   c.rng.shuffle(cands);
   cands.sort((a, z) => a.neighbours - z.neighbours);
-  for (const { p } of cands.slice(0, count)) put(c, p.x, p.y, c.base, false);
+  for (const { p } of cands.slice(0, count)) put(c, p.x, p.y, groundAround(c, p.x, p.y), false);
 }
 
 // ─────────────────────────────────────────────────────────────── connectivity
@@ -1214,6 +1265,8 @@ function pickLootSpots(c: Ctx, rng: Rng, count: number, avoid: readonly Vec2[]):
     let score = 0;
     if (c.rooms.some((r) => p.x > r.x && p.y > r.y && p.x < r.x + r.w - 1 && p.y < r.y + r.h - 1)) score += 4;
     for (const d of DIRS4) {
+      // `terrainAt` reports out-of-bounds as wall; scoring it would drag loot to the border.
+      if (!inside(c, p.x + d.x, p.y + d.y)) continue;
       const k = terrainAt(c.b, p.x + d.x, p.y + d.y);
       if (k === 'crate') score += 3;
       else if (k === 'car' || k === 'sandbag') score += 2;

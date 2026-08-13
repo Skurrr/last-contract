@@ -6,6 +6,7 @@
 import { Rng } from '@/core/rng';
 import { chebyshev, dist, facingBetween, type Vec2 } from '@/core/grid';
 import { ATTACHMENTS } from '@/data/attachments';
+import { ENEMIES } from '@/data/enemies';
 // ALL_WEAPONS rather than WEAPONS: the resolver must also find natural attacks (claws, fists),
 // which are deliberately kept out of the market catalogue.
 import { ALL_WEAPONS } from '@/data/index';
@@ -449,10 +450,46 @@ export function applyDamage(
         by: attacker?.id ?? '',
         headshot: part === 'head',
       });
+      onDeath(b, target, sink);
     }
   }
 
   return { dealt: dmg, killed, downed, crit };
+}
+
+/**
+ * Death side-effects. A bloater's whole design is that killing it at the wrong moment is
+ * worse than leaving it alone, so the burst has to fire from the death itself rather than
+ * from whatever happened to land the blow.
+ */
+function onDeath(b: BattleState, victim: Unit, sink: EventSink): void {
+  if (victim.detonated) return;
+  const def = ENEMIES[victim.defId];
+  if (def?.special !== 'gas_burst') return;
+  // Marked before the blast so a chain of bloaters resolves once each, never recursively.
+  victim.detonated = true;
+  gasBurst(b, victim, sink);
+}
+
+/** Corrosive gas: hurts and poisons the living, leaves the dead entirely unbothered. */
+export function gasBurst(b: BattleState, source: Unit, sink: EventSink): void {
+  const rng = Rng.restore(b.rngState);
+  const radius = 3;
+  sink.push({ t: 'explosion', at: source.pos, radius, damage: 12 });
+
+  for (const u of b.units) {
+    if (!u.alive || u.kind === 'zombie') continue;
+    const d = dist(source.pos, u.pos);
+    if (d > radius) continue;
+    const falloff = 1 - d / (radius + 1);
+    applyDamage(b, rng, u, rng.variance(12 * falloff, 0.2), 'torso', 6, sink);
+    if (u.alive && addStatus(u, 'poisoned', 3)) {
+      sink.push({ t: 'status', unitId: u.id, at: u.pos, kind: 'poisoned', applied: true });
+    }
+  }
+
+  emitNoise(b, source.pos, 10);
+  b.rngState = rng.state;
 }
 
 // ─────────────────────────────────────────────────────────────── firing

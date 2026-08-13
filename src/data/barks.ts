@@ -503,7 +503,7 @@ export const BARKS: Record<string, BarkSet> = {
       "Moving up.",
       "That corner's got structure. Going there.",
     ],
-    shoot: ["Firing.", "Buckshot. Close work.", "Here we go."],
+    shoot: ["Striking an arc.", "Buckshot. Close work.", "Here we go."],
     miss: ["Off. Recalculating.", "That's a rethink.", "Missed. Happens."],
     kill: ["Down and stays down.", "That's finished.", "Sealed."],
     headshot: ["Clean weld, that.", "Straight through the seam.", "One pass. Full penetration."],
@@ -999,7 +999,7 @@ export const BARKS: Record<string, BarkSet> = {
       "Shooting. Under protest.",
     ],
     miss: ["Missed. Should have used a charge.", "See, explosives don't miss.", "Off. Told you."],
-    kill: ["Down.", "Structurally resolved.", "That's him decommissioned."],
+    kill: ["Flattened.", "Structurally resolved.", "That's him decommissioned."],
     headshot: [
       "Precision demolition.",
       "Load-bearing, that head.",
@@ -1018,7 +1018,7 @@ export const BARKS: Record<string, BarkSet> = {
     ],
     ally_death: [
       "That wasn't a doorway problem. Nothing I do fixes that.",
-      "Damn it. Damn it.",
+      "There's no charge in the world that opens that back up.",
       "I'll blow them a proper grave. Least I can do.",
     ],
     levelUp: [
@@ -1185,7 +1185,7 @@ export const BARKS: Record<string, BarkSet> = {
       "Ground's soft. Step where I step.",
       "Going wide. Roads are for people who want to be seen.",
     ],
-    shoot: ["Firing.", "Short burst.", "Taking the shot."],
+    shoot: ["Clearing the lane.", "Short burst.", "Taking the shot."],
     miss: ["Off. Truck-driver aim.", "Missed. Wind through the gap.", "Again."],
     kill: ["Down. Next.", "That's the road clear.", "Paid in full."],
     headshot: [
@@ -1223,7 +1223,7 @@ export const BARKS: Record<string, BarkSet> = {
       "Three rounds. I know where to get more.",
       "Dry soon. Not worried.",
     ],
-    reload: ["Reloading.", "New mag. Give me the corner.", "Two seconds."],
+    reload: ["Pit stop.", "New mag. Give me the corner.", "Two seconds."],
     victory: [
       "Sector's ours. I'll draw it up properly tonight.",
       "Clear. There's a fuel drum behind the barn, by the way. There always is.",

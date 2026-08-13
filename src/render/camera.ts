@@ -5,6 +5,13 @@ export const TILE_PX = 16;
 /** Base scale — the world is drawn at this multiple of native pixel size. */
 export const BASE_SCALE = 3;
 
+/**
+ * Zoom bounds. The floor is low enough to frame a whole 40x32 map on a 1366-wide screen,
+ * which is the opening shot a tactics player needs.
+ */
+export const MIN_ZOOM = 0.34;
+export const MAX_ZOOM = 2.5;
+
 export class Camera {
   x = 0;
   y = 0;
@@ -43,11 +50,24 @@ export class Camera {
   }
 
   zoomBy(factor: number): void {
-    this.targetZoom = Math.max(0.5, Math.min(2.5, this.targetZoom * factor));
+    this.targetZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, this.targetZoom * factor));
   }
 
-  setZoom(z: number): void {
-    this.targetZoom = Math.max(0.5, Math.min(2.5, z));
+  setZoom(z: number, immediate = false): void {
+    this.targetZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, z));
+    if (immediate) this.zoom = this.targetZoom;
+  }
+
+  /**
+   * Zoom that fits the whole battlefield in view, clamped to the usable range. Used as the
+   * opening framing: a tactics player needs the shape of the ground before they need detail.
+   */
+  fitZoom(): number {
+    const ts = TILE_PX * BASE_SCALE;
+    return Math.max(
+      MIN_ZOOM,
+      Math.min(MAX_ZOOM, Math.min(this.viewW / (this.worldW * ts), this.viewH / (this.worldH * ts))),
+    );
   }
 
   private clampTarget(): void {

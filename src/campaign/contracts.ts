@@ -29,18 +29,18 @@ import {
 
 /** Base fee per contract kind, before threat, stance and jitter. */
 const BASE_PAY: Record<ContractKind, number> = {
-  clear: 1500,
-  defend: 1700,
-  escort: 1400,
-  assassinate: 2200,
-  retrieve: 1600,
-  sabotage: 1950,
+  clear: 2600,
+  defend: 2900,
+  escort: 2400,
+  assassinate: 3850,
+  retrieve: 2800,
+  sabotage: 3400,
 };
 
 /** What the employer's opinion of you is worth on the invoice. */
 const STANCE_PAY: Record<FactionStance, number> = {
-  allied: 1.4,
-  friendly: 1.15,
+  allied: 1.25,
+  friendly: 1.1,
   neutral: 1.0,
   hostile: 0.85,
   war: 0,
@@ -276,7 +276,9 @@ function rollOne(
   const threat = clamp(sector.threat + (against ? 1 : 0), 1, 5);
 
   const jitter = rng.float(0.9, 1.15);
-  const raw = BASE_PAY[kind] * (0.6 + 0.35 * threat) * STANCE_PAY[stance] * jitter;
+  // Threat is deliberately a gentle curve: a threat-5 job is worth ~1.8x a threat-1 one,
+  // not 3x. Steeper than this and the late game pays for itself several times over.
+  const raw = BASE_PAY[kind] * (0.8 + 0.2 * threat) * STANCE_PAY[stance] * jitter;
   const payment = Math.max(200, Math.round(raw / 50) * 50);
 
   const weight = Math.round(6 + threat * 1.6);

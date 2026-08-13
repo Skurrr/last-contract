@@ -32,6 +32,7 @@ import {
   type ActionResult,
   type CampaignState,
   type Contract,
+  type CraftJob,
   type FactionStance,
   type LogTone,
 } from './types';
@@ -42,7 +43,12 @@ export const START_CASH = 4000;
 /** Below this you cannot put anybody in the field again — see `checkFailState`. */
 export const MIN_REHIRE_COST = 300;
 /** Daily stipend per sector held, paid only by factions you are formally allied with. */
-export const ALLY_TRIBUTE_PER_SECTOR = 22;
+export const ALLY_TRIBUTE_PER_SECTOR = 12;
+/** Sectors past this earn an ally nothing extra — a retainer, not a tax farm. */
+export const ALLY_TRIBUTE_SECTOR_CAP = 8;
+/** Ammunition, medicine and fuel burned per merc on a contract, plus this much per threat. */
+export const FIELD_COST_PER_MERC = 40;
+export const FIELD_COST_PER_THREAT = 15;
 /** Horde pressure bled off per day of quiet. */
 export const HORDE_DECAY_PER_DAY = 2.5;
 /** Days between refills of the contract board. */
@@ -187,7 +193,7 @@ function collectTribute(c: CampaignState): void {
   for (const id of Object.keys(FACTIONS)) {
     if (factionStance(c, id) !== 'allied') continue;
     const held = SECTORS.filter((s) => c.sectorControl[s.id] === id).length;
-    total += held * ALLY_TRIBUTE_PER_SECTOR;
+    total += Math.min(held, ALLY_TRIBUTE_SECTOR_CAP) * ALLY_TRIBUTE_PER_SECTOR;
   }
   if (total <= 0) return;
   c.cash += total;
@@ -230,7 +236,7 @@ function dawn(c: CampaignState): void {
 /** Wounds close slowly on their own; a medic on the roster roughly doubles that. */
 function restAndMend(c: CampaignState): void {
   const medic = c.roster.reduce((best, m) => Math.max(best, m.attrs.medical), 0);
-  const heal = 4 + Math.floor(medic / 3);
+  const heal = 5 + Math.floor(medic / 2);
   for (const m of c.roster) {
     if (isBusy(c, m.id)) continue;
     const cap = maxHpFor(m.attrs, m.level, mercMods(m));
@@ -241,7 +247,7 @@ function restAndMend(c: CampaignState): void {
 
 function tickCraftJobs(c: CampaignState): void {
   if (c.craftJobs.length === 0) return;
-  const done = [];
+  const done: CraftJob[] = [];
   for (const job of c.craftJobs) {
     job.daysLeft -= 1;
     if (job.daysLeft <= 0) done.push(job);
@@ -473,6 +479,17 @@ export function completeContract(c: CampaignState, contractId: string, success: 
   const employer = FACTIONS[ct.employer]?.name ?? ct.employer;
   const where = sectorName(ct.targetSector);
 
+  // Putting people in the field costs money whether or not the job comes off. This is what
+  // makes a large roster genuinely expensive rather than strictly better.
+  const fieldCost = Math.min(
+    c.cash,
+    c.squad.length * (FIELD_COST_PER_MERC + FIELD_COST_PER_THREAT * ct.threat),
+  );
+  if (fieldCost > 0) {
+    c.cash -= fieldCost;
+    log(c, `Ammunition, medical and fuel for ${where}: $${fieldCost}.`, 'money');
+  }
+
   if (success) {
     c.cash += ct.payment;
     c.stats.contractsCompleted += 1;
@@ -489,7 +506,7 @@ export function completeContract(c: CampaignState, contractId: string, success: 
       log(c, `${employer} moves into ${where} behind you.`, 'politics');
     }
 
-    addMaterials(c.materials, salvageFrom(c, ct));
+    addMaterials(c.materials, takeSalvage(c, ct));
     log(c, `Contract closed at ${where}. ${employer} paid $${ct.payment}.`, 'good');
   } else {
     c.stats.contractsFailed += 1;
@@ -510,8 +527,11 @@ export function completeContract(c: CampaignState, contractId: string, success: 
   return OK;
 }
 
-/** What the squad picks up off the ground. Scavenge weights are authored per sector. */
-function salvageFrom(c: CampaignState, ct: Contract): Materials {
+/**
+ * What the squad picks up off the ground: materials returned, and any cash taken off bodies
+ * credited directly (only human enemies carry money — the dead carry nothing worth taking).
+ */
+function takeSalvage(c: CampaignState, ct: Contract): Materials {
   const sector = sectorById(ct.targetSector);
   if (!sector) return {};
   const out: Materials = {};
@@ -519,9 +539,8 @@ function salvageFrom(c: CampaignState, ct: Contract): Materials {
     if (!w) continue;
     out[k] = withRng(c, (rng) => rng.int(1, w + 1));
   }
-  // Bodies carry cash; the dead carry nothing worth taking.
   if (ct.against) {
-    const purse = withRng(c, (rng) => rng.int(60, 140)) * ct.threat;
+    const purse = withRng(c, (rng) => rng.int(30, 90)) * ct.threat;
     c.cash += purse;
     log(c, `Stripped the field for $${purse}.`, 'money');
   }
@@ -585,9 +604,11 @@ export function estimateSuccessChance(c: CampaignState, ct: Contract): number {
     const condition = clamp(m.hp / Math.max(1, cap), 0.3, 1) * (0.6 + m.morale / 250);
     power += (m.level * 0.5 + core) * condition;
   }
-  const opposition = ct.threat * 2.2 + (ct.against ? 1.5 : 0);
+  const opposition = ct.threat + (ct.against ? 0.7 : 0);
   if (power <= 0) return 0;
-  return clamp(power / (power + opposition), 0.1, 0.9);
+  // Floor of 0.2 because a competent merc can salvage almost anything; ceiling of 0.92
+  // because the Basin always gets a vote. Squad size is the dominant term by design.
+  return clamp(0.2 + 0.72 * (power / (power + opposition)), 0.1, 0.92);
 }
 
 /**
@@ -611,19 +632,17 @@ export function resolveContractOffline(c: CampaignState, contractId: string): Ac
   for (const id of casualties) {
     const m = findMerc(c, id);
     if (!m) continue;
-    const wound = withRng(c, (rng) => rng.int(2, 8)) * ct.threat * (success ? 1 : 2);
+    const wound = Math.round(withRng(c, (rng) => rng.int(2, 7)) * ct.threat * (success ? 1 : 1.8));
     m.hp = Math.max(1, m.hp - wound);
     m.morale = clamp(m.morale + (success ? 6 : -4), 0, 100);
     m.missions += 1;
     if (m.weapon) m.weapon.condition = clamp(m.weapon.condition - ct.threat * 2, 0, 100);
-    // Losing badly gets people killed. Winning rarely does.
-    const deathOdds = (success ? 0.01 : 0.05) * ct.threat;
+    // Losing badly gets people killed. Winning rarely does. Deaths are permanent, so these
+    // stay low — a bad run should cost you a merc every few contracts, not every contract.
+    const deathOdds = (success ? 0.003 : 0.015) * ct.threat;
     if (withRng(c, (rng) => rng.chance(deathOdds))) mercDied(c, id);
   }
 
   if (c.gameOver !== 'none') return OK;
   return completeContract(c, ct.id, success);
 }
-
-// re-exported so callers need only one import for the common stance question
-export { stanceFromRep } from './types';

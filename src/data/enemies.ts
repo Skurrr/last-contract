@@ -6,10 +6,12 @@
  * grid, so each has a distinct silhouette (`sprite`) and palette.
  *
  * ─────────────────────────────────────────────────────────────────────────────────────────
- * EXTERNAL IDS REFERENCED HERE (owned by weapons.ts — reconcile before wiring up):
- *   zombie-claws (natural melee attack, ammo 'none'), pipe-rifle, fire-axe, machete,
- *   sks, ak-74, m4-carbine, mp5, makarov, m1911, mossberg-590, sawn-off, remington-700
+ * EXTERNAL IDS REFERENCED HERE (reconciled against the real catalogues):
+ *   natural.ts — zombie-claws, zombie-claws-heavy
+ *   weapons.ts — pipecarbine, kalash7, warden4, longshot, homesteader, viper9, sawtooth12,
+ *                widowscoach, machete, fireaxe, deacon, ranger45, servant9
  * Bark set ids (barks.ts): 'zombie', 'enemy_human'.
+ * Faction ids match the keys of FACTIONS in factions.ts.
  * ─────────────────────────────────────────────────────────────────────────────────────────
  */
 import type { Attributes, BodyPart, MaterialId, Team } from '@/sim/types';
@@ -20,10 +22,10 @@ export type EnemyFamily = 'zombie' | 'human';
 export type EnemyFaction =
   | 'none'
   | 'havenhold'
-  | 'rustkings'
-  | 'ashorder'
+  | 'rust-kings'
+  | 'ash-order'
   | 'remnant'
-  | 'freetraders';
+  | 'free-traders';
 
 /**
  * Hints, not tables. The loot generator reads these and rolls actual items — keeping it
@@ -54,7 +56,7 @@ export interface EnemyDef {
   hp: number;
   /** Flat damage reduction per hit location. Armoured zombies are why headshots exist. */
   armour: Record<BodyPart, number>;
-  /** Weapon id from weapons.ts. Zombies carry `zombie-claws`. */
+  /** Weapon id from weapons.ts, or natural.ts for the dead (`zombie-claws`, heavy variant). */
   weapon: string;
   sidearm?: string;
   /** Base XP award for the kill, before the killer's wisdom scaling. */
@@ -147,7 +149,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
     attrs: deadAttrs(7, 9, 1),
     hp: 66,
     armour: { head: 0, torso: 2, arms: 0, legs: 0 },
-    weapon: 'zombie-claws',
+    weapon: 'zombie-claws-heavy',
     xp: 26,
     loot: {
       cash: [0, 8],
@@ -173,7 +175,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
     attrs: deadAttrs(8, 8, 2),
     hp: 58,
     armour: { head: 2, torso: 14, arms: 8, legs: 6 },
-    weapon: 'zombie-claws',
+    weapon: 'zombie-claws-heavy',
     xp: 34,
     loot: {
       cash: [10, 40],
@@ -247,7 +249,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
     name: 'Rust King Raider',
     family: 'human',
     team: 'enemy',
-    faction: 'rustkings',
+    faction: 'rust-kings',
     desc: 'Toll collector with a pipe gun and a strong opinion about who owns this road.',
     attrs: {
       marksmanship: 4, agility: 5, strength: 5, vitality: 4, endurance: 5,
@@ -255,7 +257,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
     },
     hp: 46,
     armour: { head: 0, torso: 3, arms: 1, legs: 1 },
-    weapon: 'pipe-rifle',
+    weapon: 'pipecarbine',
     sidearm: 'machete',
     xp: 30,
     loot: {
@@ -276,7 +278,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
     name: 'Rust King Bruiser',
     family: 'human',
     team: 'enemy',
-    faction: 'rustkings',
+    faction: 'rust-kings',
     desc: 'Ran a highway crew for four years. Wears salvaged plate and shoots in disciplined bursts.',
     attrs: {
       marksmanship: 7, agility: 5, strength: 7, vitality: 7, endurance: 6,
@@ -284,8 +286,8 @@ export const ENEMIES: Record<string, EnemyDef> = {
     },
     hp: 62,
     armour: { head: 4, torso: 9, arms: 4, legs: 3 },
-    weapon: 'ak-74',
-    sidearm: 'm1911',
+    weapon: 'kalash7',
+    sidearm: 'ranger45',
     xp: 60,
     loot: {
       cash: [60, 180],
@@ -305,7 +307,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
     name: 'Ash Order Penitent',
     family: 'human',
     team: 'enemy',
-    faction: 'ashorder',
+    faction: 'ash-order',
     desc: 'Believes the Fever is a mercy and that you are interrupting it. Charges without cover.',
     attrs: {
       marksmanship: 3, agility: 5, strength: 5, vitality: 5, endurance: 7,
@@ -314,7 +316,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
     hp: 44,
     armour: { head: 0, torso: 2, arms: 0, legs: 0 },
     weapon: 'machete',
-    sidearm: 'makarov',
+    sidearm: 'deacon',
     xp: 28,
     loot: {
       cash: [10, 45],
@@ -335,7 +337,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
     name: 'Ash Order Cinder',
     family: 'human',
     team: 'enemy',
-    faction: 'ashorder',
+    faction: 'ash-order',
     desc: 'Ash-painted, chem-fed, and does not register the first two hits you land.',
     attrs: {
       marksmanship: 5, agility: 6, strength: 8, vitality: 8, endurance: 9,
@@ -343,8 +345,8 @@ export const ENEMIES: Record<string, EnemyDef> = {
     },
     hp: 70,
     armour: { head: 2, torso: 6, arms: 2, legs: 2 },
-    weapon: 'mossberg-590',
-    sidearm: 'fire-axe',
+    weapon: 'sawtooth12',
+    sidearm: 'fireaxe',
     xp: 65,
     loot: {
       cash: [40, 140],
@@ -373,8 +375,8 @@ export const ENEMIES: Record<string, EnemyDef> = {
     },
     hp: 58,
     armour: { head: 6, torso: 12, arms: 5, legs: 5 },
-    weapon: 'm4-carbine',
-    sidearm: 'm1911',
+    weapon: 'warden4',
+    sidearm: 'ranger45',
     xp: 70,
     loot: {
       cash: [50, 150],
@@ -403,8 +405,8 @@ export const ENEMIES: Record<string, EnemyDef> = {
     },
     hp: 50,
     armour: { head: 5, torso: 9, arms: 4, legs: 4 },
-    weapon: 'remington-700',
-    sidearm: 'm1911',
+    weapon: 'longshot',
+    sidearm: 'ranger45',
     xp: 85,
     loot: {
       cash: [70, 200],
@@ -425,7 +427,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
     name: 'Caravan Guard',
     family: 'human',
     team: 'enemy',
-    faction: 'freetraders',
+    faction: 'free-traders',
     desc: 'Paid to look expensive to attack. Will surrender the cargo before dying for it.',
     attrs: {
       marksmanship: 6, agility: 6, strength: 5, vitality: 5, endurance: 6,
@@ -433,8 +435,8 @@ export const ENEMIES: Record<string, EnemyDef> = {
     },
     hp: 52,
     armour: { head: 3, torso: 7, arms: 3, legs: 3 },
-    weapon: 'mp5',
-    sidearm: 'm1911',
+    weapon: 'viper9',
+    sidearm: 'servant9',
     xp: 55,
     loot: {
       cash: [80, 240],
@@ -456,15 +458,15 @@ export const ENEMIES: Record<string, EnemyDef> = {
     family: 'human',
     team: 'enemy',
     faction: 'havenhold',
-    desc: 'A farmer with a surplus rifle and a wall to stand on. Fights hard at home and nowhere else.',
+    desc: 'A farmer with a coyote carbine and a wall to stand on. Fights hard at home and nowhere else.',
     attrs: {
       marksmanship: 5, agility: 4, strength: 6, vitality: 6, endurance: 6,
       wisdom: 4, leadership: 4, mechanical: 5, medical: 4, explosives: 2,
     },
     hp: 50,
     armour: { head: 1, torso: 4, arms: 1, legs: 1 },
-    weapon: 'sks',
-    sidearm: 'sawn-off',
+    weapon: 'homesteader',
+    sidearm: 'widowscoach',
     xp: 40,
     loot: {
       cash: [25, 90],

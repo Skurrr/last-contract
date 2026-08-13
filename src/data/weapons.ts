@@ -58,7 +58,9 @@ export const WEAPONS: Record<string, WeaponDef> = {
     modes: ['single'],
     burstRounds: 1,
     autoRounds: 1,
-    slots: ['optic', 'barrel', 'magazine', 'internal'],
+    // The only pistol with a `stock` slot: the frame takes a brace, which is what the
+    // shoulder brace and the taped brace in attachments.ts are built for.
+    slots: ['optic', 'barrel', 'magazine', 'stock', 'internal'],
     value: 340,
     rarity: 'uncommon',
     penetration: 5,

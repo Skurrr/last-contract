@@ -68,8 +68,13 @@ import {
 /** Hard cap on actions per unit per turn. Belt and braces against a scoring stalemate. */
 const MAX_ACTIONS_PER_TURN = 12;
 
-/** Noise below this is background hiss — not worth crossing a street for. */
-const NOISE_FLOOR = 0.12;
+/**
+ * Noise below this is background hiss — not worth crossing a street for. Intensity is
+ * absolute (see `emitNoise`): a knife is ~0.07 at the tile it happened on, a footstep 0.15,
+ * a rifle 0.55 at the muzzle. So this floor means "a zombie standing on top of a quiet kill
+ * notices; nobody else does".
+ */
+const NOISE_FLOOR = 0.07;
 
 /** How far a zombie will scan the noise field for a destination. */
 const NOISE_SCAN = 20;
@@ -264,6 +269,7 @@ function nearest(from: Vec2, list: readonly Unit[]): Unit | null {
  */
 function advanceToward(b: BattleState, u: Unit, goal: Vec2, sink: EventSink): boolean {
   if (eq(u.pos, goal)) return false;
+  if (u.ap < cheapestStep(b, u)) return false; // cannot afford a single tile — skip the A*
   const path = findPath(b, u, goal);
   if (path.tiles.length === 0) return false;
 
@@ -280,6 +286,18 @@ function advanceToward(b: BattleState, u: Unit, goal: Vec2, sink: EventSink): bo
   }
   if (!dest) return false;
   return moveUnit(b, u, dest, sink).ok;
+}
+
+/** AP for the cheapest single step available, or Infinity when boxed in. */
+function cheapestStep(b: BattleState, u: Unit): number {
+  const moveMul = unitMods(u).moveCostMul;
+  let best = Infinity;
+  for (const d of FACING_DIR) {
+    const p = { x: u.pos.x + d.x, y: u.pos.y + d.y };
+    if (!isPassable(b, p.x, p.y, u)) continue;
+    best = Math.min(best, Math.ceil(stepCost(b, u, u.pos, p) * moveMul));
+  }
+  return best;
 }
 
 /** Close on a unit: path to the cheapest free tile beside it. */
@@ -363,11 +381,22 @@ function zombieStep(b: BattleState, u: Unit, sink: EventSink, ctx: AiCtx, memo: 
   return wander(b, u, sink);
 }
 
-/** Loudest tile within `radius` on the frozen noise map, or null if the world is quiet. */
+/**
+ * Loudest tile within `radius` on the frozen noise map, or null if nothing out there is
+ * worth walking to.
+ *
+ * The reference level is what this unit is already standing in — on the *live* field, so it
+ * includes the footsteps it just made. A zombie will not cross the street for a sound
+ * quieter than its own feet, and that one line is what stops the dead from following their
+ * own trail back and forth forever.
+ */
 function loudestNearby(b: BattleState, u: Unit, ctx: AiCtx, radius: number): Vec2 | null {
-  const here = snapNoise(b, ctx, u.pos.x, u.pos.y);
+  const here = Math.max(
+    noiseAt(b, u.pos.x, u.pos.y),
+    snapNoise(b, ctx, u.pos.x, u.pos.y),
+  );
   let best: Vec2 | null = null;
-  let bestV = Math.max(NOISE_FLOOR, here);
+  let bestV = Math.max(NOISE_FLOOR, here) + 0.02;
   let bestD = Infinity;
 
   for (let y = u.pos.y - radius; y <= u.pos.y + radius; y++) {

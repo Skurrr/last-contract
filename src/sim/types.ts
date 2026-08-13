@@ -265,6 +265,14 @@ export interface Unit {
   criticalTurns: number;
   /** Zombie AI: the noise source it is currently walking toward. */
   target?: Vec2;
+  /**
+   * This unit has no legs to stand on — crawling is its natural gait, not a stance penalty.
+   * Without this a crawler's 4 AP could never pay the 6 AP a prone step costs, and it would
+   * be a statue that bites whatever wandered into reach.
+   */
+  naturalProne?: boolean;
+  /** Set once a death explosion has fired, so a chain of bloaters cannot recurse. */
+  detonated?: boolean;
 }
 
 // ─────────────────────────────────────────────────────────────── terrain
