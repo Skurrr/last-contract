@@ -1,5 +1,5 @@
 /**
- * The perk catalogue — 63 nodes across five trees.
+ * The perk catalogue — 101 nodes across five trees.
  *
  * Reading a perk: `tier` gates when it is offered, `requires` gates who is ever offered it
  * (this is what stops Steroid from becoming a sniper), `after` builds the chains, and
@@ -15,7 +15,7 @@
 import type { PerkDef, PerkTree } from '@/sim/progression';
 
 const defs: PerkDef[] = [
-  // ────────────────────────────────────────────────────────── gunfighting (15)
+  // ────────────────────────────────────────────────────────── gunfighting (20)
 
   {
     id: 'trigger_discipline',
@@ -214,7 +214,7 @@ const defs: PerkDef[] = [
     weaponClasses: ['pistol'],
   },
 
-  // ────────────────────────────────────────────────────────── survival (12)
+  // ────────────────────────────────────────────────────────── survival (22)
 
   {
     id: 'iron_lungs',
@@ -423,7 +423,7 @@ const defs: PerkDef[] = [
     after: ['thick_skin'],
   },
 
-  // ────────────────────────────────────────────────────────── movement (12)
+  // ────────────────────────────────────────────────────────── movement (17)
 
   {
     id: 'sprinter',
@@ -588,7 +588,7 @@ const defs: PerkDef[] = [
     after: ['sprinter', 'interrupt_reflex'],
   },
 
-  // ────────────────────────────────────────────────────────── support (12)
+  // ────────────────────────────────────────────────────────── support (22)
 
   {
     id: 'triage',
@@ -634,6 +634,77 @@ const defs: PerkDef[] = [
     desc: 'Ranges, wind, and the shape of a man crouched behind a hedge — you see them and you say them out loud.',
     mods: { sightRange: 3, squadXpMul: 1.05 },
     requires: { wisdom: 4, marksmanship: 4 },
+  },
+  {
+    id: 'field_dressing',
+    name: 'Field Dressing',
+    tree: 'support',
+    tier: 1,
+    desc: 'Everyone left alive can tie a bandage. You tie one that is still on an hour later.',
+    mods: { bleedResist: 0.12, healMul: 1.1 },
+  },
+  {
+    id: 'hard_lessons',
+    name: 'Hard Lessons',
+    tree: 'support',
+    tier: 1,
+    desc: 'You keep a tally of everything that nearly killed you and you read it back to yourself on the ride home.',
+    mods: { xpMul: 1.12 },
+  },
+  {
+    id: 'bedside_manner',
+    name: 'Bedside Manner',
+    tree: 'support',
+    tier: 1,
+    desc: 'Half of medicine is telling a frightened man he will be fine in a voice that sounds like it means it.',
+    mods: { healMul: 1.15, moraleRegen: 1 },
+    requires: { medical: 3 },
+  },
+  {
+    id: 'pharmacy_run',
+    name: 'Pharmacy Run',
+    tree: 'support',
+    tier: 1,
+    desc: 'You remember which shelf the good stuff sat on in every chain pharmacy in the Basin, and which ones are already stripped.',
+    mods: { scavengeMul: 1.25, healMul: 1.1 },
+    requires: { medical: 3, wisdom: 3 },
+  },
+  {
+    id: 'hold_the_line',
+    name: 'Hold the Line',
+    tree: 'support',
+    tier: 1,
+    desc: 'You say "stay" in a tone that makes staying sound like the sensible option, and people stay.',
+    mods: { suppressionResist: 0.2, moraleRegen: 1 },
+    requires: { leadership: 3 },
+  },
+  {
+    id: 'head_count',
+    name: 'Head Count',
+    tree: 'support',
+    tier: 1,
+    desc: 'You always know where all four of them are without looking, which is more than any of them can say.',
+    mods: { sightRange: 1, squadXpMul: 1.05 },
+    requires: { leadership: 3 },
+  },
+  {
+    id: 'paymaster',
+    name: 'Paymaster',
+    tree: 'support',
+    tier: 1,
+    desc: 'The books balance because you sit on them, and the squad gets paid before you do.',
+    mods: { salaryMul: 0.88 },
+    requires: { leadership: 4 },
+  },
+  {
+    id: 'stretcher_bearer',
+    name: 'Stretcher Bearer',
+    tree: 'support',
+    tier: 1,
+    desc: 'Collar, drag, corner — you have never yet left anyone lying where they fell, and everyone on the roster knows it.',
+    mods: { healMul: 1.05 },
+    requires: { strength: 4 },
+    special: 'drag_wounded',
   },
   {
     id: 'field_surgeon',
@@ -685,6 +756,26 @@ const defs: PerkDef[] = [
     requires: { wisdom: 6, leadership: 4 },
   },
   {
+    id: 'bone_setter',
+    name: 'Bone Setter',
+    tree: 'support',
+    tier: 2,
+    desc: 'You set it, you splint it, and you tell them exactly how long before they walk on it — and you have never been wrong yet.',
+    mods: { healMul: 1.3, stunResist: 0.1 },
+    requires: { medical: 5 },
+    after: ['bedside_manner'],
+  },
+  {
+    id: 'chaplains_ear',
+    name: "Chaplain's Ear",
+    tree: 'support',
+    tier: 2,
+    desc: 'People tell you the thing they have not told anyone, and afterwards they can hold a rifle steady again.',
+    mods: { moraleRegen: 3, suppressionResist: 0.2 },
+    requires: { leadership: 5, wisdom: 4 },
+    after: ['hold_the_line'],
+  },
+  {
     id: 'chief_surgeon',
     name: 'Chief Surgeon',
     tree: 'support',
@@ -705,7 +796,7 @@ const defs: PerkDef[] = [
     after: ['inspiring', 'drill_instructor'],
   },
 
-  // ────────────────────────────────────────────────────────── engineering (12)
+  // ────────────────────────────────────────────────────────── engineering (20)
 
   {
     id: 'scrapper',
@@ -752,6 +843,71 @@ const defs: PerkDef[] = [
     mods: { damageMul: 1.15, craftQuality: 4 },
     requires: { explosives: 4 },
     weaponClasses: ['thrown'],
+  },
+  {
+    id: 'oil_and_rag',
+    name: 'Oil and Rag',
+    tree: 'engineering',
+    tier: 1,
+    desc: 'Every night, same order: clear it, wipe it, oil it, load it. Your gun has never let you down and that is not luck.',
+    mods: { repairMul: 0.88 },
+  },
+  {
+    id: 'stovepipe_sense',
+    name: 'Stovepipe Sense',
+    tree: 'engineering',
+    tier: 1,
+    desc: 'You feel a gun start to go wrong two rounds before it does, and you clear it without looking down.',
+    mods: { repairMul: 0.9 },
+    requires: { mechanical: 3 },
+    special: 'jam_clear',
+  },
+  {
+    id: 'handloader',
+    name: 'Handloader',
+    tree: 'engineering',
+    tier: 1,
+    desc: 'Spent brass goes in the pouch, not the mud, and one quiet evening turns it back into ammunition.',
+    mods: { craftQuality: 6, lootMul: 1.08 },
+    requires: { mechanical: 3 },
+  },
+  {
+    id: 'whetstone',
+    name: 'Whetstone',
+    tree: 'engineering',
+    tier: 1,
+    desc: 'Twenty strokes a side, every night, until an edge that opens a throat is simply the state your blade lives in.',
+    mods: { critChance: 0.05, repairMul: 0.92 },
+    requires: { mechanical: 3 },
+    weaponClasses: ['melee'],
+  },
+  {
+    id: 'fuse_cutter',
+    name: 'Fuse Cutter',
+    tree: 'engineering',
+    tier: 1,
+    desc: 'You cut fuse by eye and you have never once still been holding the thing when it went.',
+    mods: { craftQuality: 6, stunResist: 0.1 },
+    requires: { explosives: 3 },
+  },
+  {
+    id: 'sapper_eye',
+    name: "Sapper's Eye",
+    tree: 'engineering',
+    tier: 1,
+    desc: 'A tripwire is the politest thing anyone in the Basin will ever do for you — it tells you exactly where they want you to walk.',
+    mods: { sightRange: 1, craftQuality: 4 },
+    requires: { explosives: 3 },
+    special: 'spot_traps',
+  },
+  {
+    id: 'blast_ear',
+    name: 'Blast Ear',
+    tree: 'engineering',
+    tier: 1,
+    desc: 'Enough close ones that a grenade has become a sound rather than an event, and you are moving before the dust is.',
+    mods: { suppressionResist: 0.25, stunResist: 0.15 },
+    requires: { explosives: 4 },
   },
   {
     id: 'gunsmith_2',
@@ -806,6 +962,16 @@ const defs: PerkDef[] = [
     weaponClasses: ['thrown'],
   },
   {
+    id: 'plate_fitter',
+    name: 'Plate Fitter',
+    tree: 'engineering',
+    tier: 2,
+    desc: 'Cut down, re-strapped, and padded where it always bit — the squad queues at your bench before every contract.',
+    mods: { armour: 3, moveCostMul: 0.97 },
+    requires: { mechanical: 6, strength: 4 },
+    after: ['armourer'],
+  },
+  {
     id: 'gunsmith_3',
     name: 'Gunsmith III',
     tree: 'engineering',
@@ -839,6 +1005,7 @@ export function perksInTree(tree: PerkTree): PerkDef[] {
 /** Every `special` id used by a perk — the combat layer must handle each of these. */
 export const PERK_SPECIALS: readonly string[] = [
   'double_tap',
+  'buttstroke',
   'suppressive_fire',
   'headhunter',
   'second_wind',
@@ -848,4 +1015,8 @@ export const PERK_SPECIALS: readonly string[] = [
   'inspiring_aura',
   'trap_layer',
   'barricade',
+  'jam_clear',
+  'drag_wounded',
+  'sound_bait',
+  'spot_traps',
 ];
