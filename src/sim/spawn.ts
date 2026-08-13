@@ -31,7 +31,12 @@ import type {
 } from './types';
 
 let uidCounter = 0;
-/** Monotonic instance id. Battles are seeded, but object identity need not be. */
+/**
+ * Monotonic instance id, for objects created outside a seeded context (the market, the
+ * workshop). Anything that must survive a replay should use `seededUid` instead — a
+ * process-global counter is not reproducible, which is how two runs of the same battle
+ * ended up with the same state under different names.
+ */
 export function uid(prefix: string): string {
   uidCounter += 1;
   return `${prefix}_${uidCounter.toString(36)}`;
@@ -41,12 +46,17 @@ export function resetUidCounter(): void {
   uidCounter = 0;
 }
 
+/** Deterministic identity derived from the caller's seed, stable across replays. */
+export function seededUid(prefix: string, seed: number, salt = 0): string {
+  return `${prefix}_${(hashString(prefix) ^ (seed >>> 0) ^ (salt * 2654435761)).toString(36)}`;
+}
+
 const NO_ARMOUR: Record<BodyPart, number> = { head: 0, torso: 0, arms: 0, legs: 0 };
 
 /** Build a fresh, fully-loaded weapon instance. Returns null for an unknown id. */
 export function makeWeapon(
   defId: string,
-  opts: { condition?: number; attachments?: Record<string, string> } = {},
+  opts: { condition?: number; attachments?: Record<string, string>; uid?: string } = {},
 ): WeaponInstance | null {
   const def = ALL_WEAPONS[defId];
   if (!def) return null;
@@ -62,7 +72,7 @@ export function makeWeapon(
   }
 
   return {
-    uid: uid('w'),
+    uid: opts.uid ?? uid('w'),
     defId,
     condition: opts.condition ?? 100,
     attachments,
@@ -219,13 +229,15 @@ export function spawnEnemy(defId: string, pos: Vec2, seed: number): Unit {
   const maxHp = Math.round(def.hp * (def.family === 'human' ? rng.float(0.9, 1.1) : 1));
   const maxStamina = maxStaminaFor(attrs, mods);
 
+  const id = seededUid(defId, seed, pos.x * 1024 + pos.y);
   const weapon = makeWeapon(def.weapon, {
     // Enemy gear is used gear. This is also why looted guns need repairing.
     condition: def.family === 'human' ? rng.int(45, 92) : 100,
+    uid: `${id}:w`,
   });
 
   return {
-    id: uid(defId),
+    id,
     defId,
     name: def.name,
     team: def.team,
@@ -245,7 +257,7 @@ export function spawnEnemy(defId: string, pos: Vec2, seed: number): Unit {
     armour: { ...def.armour },
     statuses: [],
     weapon,
-    sidearm: def.sidearm ? makeWeapon(def.sidearm) : null,
+    sidearm: def.sidearm ? makeWeapon(def.sidearm, { uid: `${id}:s` }) : null,
     inventory: [],
     perks: [],
     traits: [],
