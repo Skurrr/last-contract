@@ -20,6 +20,8 @@ import { lookFromPalette, portraitSprite } from '@/art/units';
 export interface LevelUpChoice {
   perkId: string | null;
   attribute: keyof Attributes | null;
+  /** The ids dealt this level. Feed back as `previousOffer` on the next level-up. */
+  offered: string[];
 }
 
 export interface LevelUpSubject {
@@ -28,6 +30,13 @@ export interface LevelUpSubject {
   attrs: Attributes;
   perks: string[];
   traits: string[];
+  /**
+   * The perk ids actually dealt at the previous level, so this deal can avoid repeating
+   * them. Without it the previous hand has to be reconstructed against the *current* pool —
+   * but the pool shifts every level as perks are taken and attribute gates open, so the
+   * reconstruction drifts from what the player really saw and duplicates leak through.
+   */
+  previousOffer?: readonly string[];
 }
 
 // ─────────────────────────────────────────────────────────────── offer selection
@@ -114,9 +123,12 @@ export function perkOffers(subject: LevelUpSubject): PerkDef[] {
     return ra !== rb ? ra - rb : a.id < b.id ? -1 : 1;
   });
 
-  const previous =
-    subject.level > 2
-      ? new Set(deal(pool, subject.level - 1, new Set<string>()).map((p) => p.id))
+  const previous = subject.previousOffer
+    ? new Set(subject.previousOffer)
+    : subject.level > 2
+      ? // Fallback for callers that do not track offers. Approximate, and the reason
+        // `previousOffer` exists.
+        new Set(deal(pool, subject.level - 1, new Set<string>()).map((p) => p.id))
       : new Set<string>();
 
   return deal(pool, subject.level, previous);
@@ -342,7 +354,7 @@ export function openLevelUp(subject: LevelUpSubject, onConfirm: (choice: LevelUp
 
   confirmBtn.addEventListener('click', () => {
     if (confirmBtn.hasAttribute('disabled')) return;
-    const choice: LevelUpChoice = { perkId, attribute };
+    const choice: LevelUpChoice = { perkId, attribute, offered: offers.map((p) => p.id) };
     overlay.remove();
     onConfirm(choice);
   });

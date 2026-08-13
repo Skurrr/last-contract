@@ -77,6 +77,12 @@ function applyHudInsets(): void {
 /** Level-ups are queued so several at once are presented one after another, not stacked. */
 const levelUpQueue: string[] = [];
 let levelUpOpen = false;
+/**
+ * What each merc was last offered. The deal avoids repeating the previous hand, and it can
+ * only do that reliably if it is told what was actually shown — the perk pool shifts every
+ * level, so reconstructing the old hand from the new pool drifts.
+ */
+const lastOffers = new Map<string, readonly string[]>();
 
 function drainLevelUps(): void {
   if (levelUpOpen || !controller) return;
@@ -86,10 +92,19 @@ function drainLevelUps(): void {
   if (!u) return drainLevelUps();
 
   levelUpOpen = true;
+  const previousOffer = lastOffers.get(u.id);
   openLevelUp(
-    { defId: u.defId, level: u.level + 1, attrs: u.attrs, perks: u.perks, traits: u.traits },
+    {
+      defId: u.defId,
+      level: u.level + 1,
+      attrs: u.attrs,
+      perks: u.perks,
+      traits: u.traits,
+      ...(previousOffer ? { previousOffer } : {}),
+    },
     (choice) => {
       levelUpOpen = false;
+      lastOffers.set(u.id, choice.offered);
       if (controller) {
         applyLevelUp(controller.battle, u, choice.perkId, choice.attribute as Attribute | null);
       }

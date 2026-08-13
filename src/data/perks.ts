@@ -1,5 +1,5 @@
 /**
- * The perk catalogue — 101 nodes across five trees.
+ * The perk catalogue — 127 nodes across five trees.
  *
  * Reading a perk: `tier` gates when it is offered, `requires` gates who is ever offered it
  * (this is what stops Steroid from becoming a sniper), `after` builds the chains, and
@@ -15,7 +15,7 @@
 import type { PerkDef, PerkTree } from '@/sim/progression';
 
 const defs: PerkDef[] = [
-  // ────────────────────────────────────────────────────────── gunfighting (20)
+  // ────────────────────────────────────────────────────────── gunfighting (26)
 
   {
     id: 'trigger_discipline',
@@ -124,7 +124,7 @@ const defs: PerkDef[] = [
     name: 'Bayonet Manners',
     tree: 'gunfighting',
     tier: 1,
-    desc: 'A long gun is a club with a bullet in it, and at arm\'s length you have opinions about which end to use.',
+    desc: "A long gun is a club with a bullet in it, and at arm's length you have opinions about which end to use.",
     mods: { closeRangeAccuracy: 8, stunResist: 0.1 },
     requires: { strength: 4 },
     weaponClasses: ['rifle', 'battlerifle', 'shotgun', 'lmg'],
@@ -157,6 +157,23 @@ const defs: PerkDef[] = [
     mods: { longRangeAccuracy: 8 },
     requires: { strength: 3 },
     weaponClasses: ['thrown'],
+  },
+  {
+    id: 'steady_hands',
+    name: 'Steady Hands',
+    tree: 'gunfighting',
+    tier: 1,
+    desc: 'Your hands do not shake. They stopped shaking about six years ago and they have never started again.',
+    mods: { recoilMul: 0.9, calledShotAccuracy: 6 },
+  },
+  {
+    id: 'cold_bore',
+    name: 'Cold Bore',
+    tree: 'gunfighting',
+    tier: 1,
+    desc: 'The first round out of a cold barrel is the one that decides the contract, and you have never given that one away.',
+    mods: { accuracy: 4 },
+    requires: { marksmanship: 4 },
   },
   {
     id: 'weak_side',
@@ -251,7 +268,7 @@ const defs: PerkDef[] = [
     weaponClasses: ['pistol'],
   },
 
-  // ────────────────────────────────────────────────────────── survival (22)
+  // ────────────────────────────────────────────────────────── survival (23)
 
   {
     id: 'iron_lungs',
@@ -377,6 +394,15 @@ const defs: PerkDef[] = [
     requires: { wisdom: 3 },
   },
   {
+    id: 'deadhouse_nerve',
+    name: 'Deadhouse Nerve',
+    tree: 'survival',
+    tier: 1,
+    desc: 'You have slept in a room with them scratching at the far side of the door, and you slept well.',
+    mods: { suppressionResist: 0.2, moraleRegen: 1 },
+    requires: { wisdom: 4 },
+  },
+  {
     id: 'cold_blooded',
     name: 'Cold Blooded',
     tree: 'survival',
@@ -460,7 +486,7 @@ const defs: PerkDef[] = [
     after: ['thick_skin'],
   },
 
-  // ────────────────────────────────────────────────────────── movement (17)
+  // ────────────────────────────────────────────────────────── movement (23)
 
   {
     id: 'sprinter',
@@ -676,7 +702,7 @@ const defs: PerkDef[] = [
     after: ['sprinter', 'interrupt_reflex'],
   },
 
-  // ────────────────────────────────────────────────────────── support (22)
+  // ────────────────────────────────────────────────────────── support (28)
 
   {
     id: 'triage',
@@ -820,6 +846,24 @@ const defs: PerkDef[] = [
     requires: { endurance: 3 },
   },
   {
+    id: 'mentor',
+    name: 'Mentor',
+    tree: 'support',
+    tier: 1,
+    desc: 'You explain it once, in short words, on the tailgate — and nobody you have taught has ever needed telling twice.',
+    mods: { squadXpMul: 1.12, moraleRegen: 1 },
+    requires: { leadership: 4 },
+  },
+  {
+    id: 'calibre_snob',
+    name: 'Calibre Snob',
+    tree: 'support',
+    tier: 1,
+    desc: 'You will not carry a gun the Basin cannot feed, and you have talked three people out of a beautiful rifle nobody has ammunition for.',
+    mods: { lootMul: 1.15, salaryMul: 0.96 },
+    requires: { wisdom: 3 },
+  },
+  {
     id: 'field_surgeon',
     name: 'Field Surgeon',
     tree: 'support',
@@ -869,6 +913,16 @@ const defs: PerkDef[] = [
     requires: { wisdom: 6, leadership: 4 },
   },
   {
+    id: 'range_officer',
+    name: 'Range Officer',
+    tree: 'support',
+    tier: 2,
+    desc: 'You run the firing line the way you ran it before the Fever — one shooter at a time, no talking, everybody better by dark.',
+    mods: { squadXpMul: 1.15, accuracy: 2 },
+    requires: { leadership: 5, marksmanship: 6 },
+    after: ['mentor'],
+  },
+  {
     id: 'bone_setter',
     name: 'Bone Setter',
     tree: 'support',
@@ -909,7 +963,7 @@ const defs: PerkDef[] = [
     after: ['inspiring', 'drill_instructor'],
   },
 
-  // ────────────────────────────────────────────────────────── engineering (20)
+  // ────────────────────────────────────────────────────────── engineering (27)
 
   {
     id: 'scrapper',
@@ -1023,11 +1077,28 @@ const defs: PerkDef[] = [
     requires: { explosives: 4 },
   },
   {
+    id: 'wire_and_tin',
+    name: 'Wire and Tin',
+    tree: 'engineering',
+    tier: 1,
+    desc: 'A line of wire and six ration tins across the corridor — the cheapest sentry anybody in the Basin ever posted.',
+    mods: { craftQuality: 4, interruptChance: 0.04 },
+  },
+  {
+    id: 'pry_bar',
+    name: 'Pry Bar',
+    tree: 'engineering',
+    tier: 1,
+    desc: 'Locks are a suggestion made by people who did not anticipate you, a length of steel, and an afternoon.',
+    mods: { scavengeMul: 1.2, craftQuality: 3 },
+    requires: { strength: 4 },
+  },
+  {
     id: 'siphon',
     name: 'Siphon',
     tree: 'engineering',
     tier: 1,
-    desc: 'A length of hose, a steady mouth, and an unshakeable conviction that a dead man\'s tank is nobody\'s tank.',
+    desc: "A length of hose, a steady mouth, and an unshakeable conviction that a dead man's tank is nobody's tank.",
     mods: { scavengeMul: 1.2, salaryMul: 0.96 },
   },
   {
@@ -1107,6 +1178,16 @@ const defs: PerkDef[] = [
     requires: { explosives: 6, strength: 5 },
     after: ['powder_monkey'],
     weaponClasses: ['thrown'],
+  },
+  {
+    id: 'accurised',
+    name: 'Accurised',
+    tree: 'engineering',
+    tier: 2,
+    desc: 'Bedded action, lapped rings, a trigger job measured in ounces — the rifle now shoots better than the person holding it.',
+    mods: { accuracy: 4, longRangeAccuracy: 6 },
+    requires: { mechanical: 6, marksmanship: 5 },
+    after: ['optics_fitter'],
   },
   {
     id: 'plate_fitter',
