@@ -70,14 +70,9 @@ export class BattleController {
     this.renderer = new Renderer(canvas, this.camera, this.fx);
     this.player = new EventPlayer(this.fx, this.renderer, hooks);
 
-    // Open framed on the whole battlefield, then let the player zoom in. Landing at max
-    // zoom on one merc hides the ground, which is the only thing tactics is about.
-    this.camera.setZoom(Math.max(this.camera.fitZoom(), 0.5), true);
     const first = battle.units.find((u) => u.team === 'player' && u.alive);
-    if (first) {
-      this.selectedId = first.id;
-      this.camera.centerOn(first.pos, true);
-    }
+    if (first) this.selectedId = first.id;
+    this.frameOnSquad();
   }
 
   // ─────────────────────────────────────────────── queries
@@ -142,7 +137,6 @@ export class BattleController {
     this.mode = 'move';
     this.plan = { mode: 'single', aim: 0, part: 'torso' };
     this.camera.centerOn(u.pos);
-    this.camera.setZoom(Math.max(this.camera.fitZoom(), 0.5));
     this.invalidate();
   }
 
@@ -364,6 +358,20 @@ export class BattleController {
 
   resize(w: number, h: number): void {
     this.camera.resize(w, h);
+  }
+
+  /**
+   * Open framed on the squad's centre of mass at a zoom that shows the ground around them.
+   * Landing at max zoom on one merc hides the terrain, which is the only thing tactics is
+   * about — and centring on a single merc near a map edge parks them under the HUD.
+   */
+  frameOnSquad(): void {
+    const squad = this.playerSquad.filter((u) => u.alive);
+    if (squad.length === 0) return;
+    const cx = squad.reduce((n, u) => n + u.pos.x, 0) / squad.length;
+    const cy = squad.reduce((n, u) => n + u.pos.y, 0) / squad.length;
+    this.camera.setZoom(Math.max(this.camera.fitZoom(), 0.55), true);
+    this.camera.centerOn({ x: Math.round(cx), y: Math.round(cy) }, true);
   }
 
   /** Drive one frame. `dt` is real seconds; hitstop is applied internally. */

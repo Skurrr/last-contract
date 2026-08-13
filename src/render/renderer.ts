@@ -173,8 +173,10 @@ export class Renderer {
         ctx.drawImage(spr, x * TS, y * TS);
 
         if (vis && !vis.has((y << 10) | x)) {
-          // Remembered but unseen: darkened, not hidden. The player keeps their map.
-          ctx.fillStyle = 'rgba(6,8,6,0.62)';
+          // Remembered but unseen: cooled and dimmed, not blacked out. The player keeps
+          // their map, and the colour survives — a fog heavy enough to grey the whole
+          // board makes the art pointless and the ground unreadable.
+          ctx.fillStyle = 'rgba(12,18,32,0.46)';
           ctx.fillRect(x * TS, y * TS, TS, TS);
         }
       }

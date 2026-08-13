@@ -24,10 +24,11 @@ function drawTile(kind: TerrainKind, variant: number): Pix {
   switch (kind) {
     case 'grass': {
       p.rect(0, 0, TILE, TILE, PAL.grass);
-      speckle(p, r, PAL.grassDark, 26);
-      speckle(p, r, shade(PAL.grass, 0.18), 18);
-      // Occasional tufts give the field a direction.
-      for (let i = 0; i < 4; i++) {
+      speckle(p, r, PAL.grassDark, 9, 150);
+      speckle(p, r, shade(PAL.grass, 0.14), 6, 130);
+      // Occasional tufts give the field a direction. Sparse on purpose — dense tufting
+      // turns a whole field into noise once it tiles across the map.
+      for (let i = 0; i < (variant % 2 === 0 ? 2 : 0); i++) {
         const x = r.int(1, TILE - 2);
         const y = r.int(1, TILE - 3);
         p.set(x, y, shade(PAL.grass, 0.3));
@@ -37,13 +38,13 @@ function drawTile(kind: TerrainKind, variant: number): Pix {
     }
     case 'dirt': {
       p.rect(0, 0, TILE, TILE, PAL.dirt);
-      speckle(p, r, PAL.dirtDark, 30);
-      speckle(p, r, shade(PAL.dirt, 0.15), 16);
+      speckle(p, r, PAL.dirtDark, 10, 150);
+      speckle(p, r, shade(PAL.dirt, 0.12), 6, 130);
       break;
     }
     case 'road': {
       p.rect(0, 0, TILE, TILE, PAL.road);
-      speckle(p, r, PAL.roadDark, 22);
+      speckle(p, r, PAL.roadDark, 8, 140);
       // Cracks — the roads have not been maintained in eight years.
       if (r.chance(0.4)) {
         let x = r.int(2, TILE - 3);
@@ -56,9 +57,14 @@ function drawTile(kind: TerrainKind, variant: number): Pix {
       break;
     }
     case 'floor': {
-      const c = PAL.concrete;
+      // Weathering tint varies per tile so a warehouse floor is not one flat grey.
+      const c = mix(
+        PAL.concrete,
+        r.pick([PAL.grassDark, PAL.rust, PAL.khaki, PAL.concrete]),
+        r.float(0.05, 0.22),
+      );
       p.rect(0, 0, TILE, TILE, c);
-      speckle(p, r, shade(c, -0.14), 20);
+      speckle(p, r, shade(c, -0.12), 7, 140);
       // Tile seams.
       p.rect(0, 0, TILE, 1, shade(c, -0.22));
       p.rect(0, 0, 1, TILE, shade(c, -0.22));
@@ -74,8 +80,8 @@ function drawTile(kind: TerrainKind, variant: number): Pix {
       break;
     }
     case 'rubble': {
-      p.rect(0, 0, TILE, TILE, mix(PAL.concrete, PAL.dirt, 0.4));
-      for (let i = 0; i < 14; i++) {
+      p.rect(0, 0, TILE, TILE, mix(mix(PAL.concrete, PAL.dirt, 0.4), PAL.grassDark, r.float(0, 0.25)));
+      for (let i = 0; i < 6; i++) {
         const x = r.int(0, TILE - 3);
         const y = r.int(0, TILE - 3);
         const s = r.int(1, 3);
@@ -85,17 +91,23 @@ function drawTile(kind: TerrainKind, variant: number): Pix {
       break;
     }
     case 'wall': {
-      const c = PAL.concrete;
+      const c = mix(PAL.concrete, r.pick([PAL.rust, PAL.grassDark, PAL.khaki]), r.float(0.06, 0.2));
       p.rect(0, 0, TILE, TILE, c);
       // Brick courses, offset every other row.
       for (let row = 0; row < 4; row++) {
         const y = row * 4;
-        p.rect(0, y, TILE, 1, shade(c, -0.32));
+        p.rect(0, y, TILE, 1, shade(c, -0.45));
         const off = row % 2 === 0 ? 0 : 4;
-        for (let x = off; x < TILE; x += 8) p.rect(x, y, 1, 4, shade(c, -0.32));
+        for (let x = off; x < TILE; x += 8) p.rect(x, y, 1, 4, shade(c, -0.45));
       }
       p.rect(0, 0, TILE, 1, shade(c, 0.25));
-      speckle(p, r, shade(c, -0.15), 12);
+      speckle(p, r, shade(c, -0.12), 5, 130);
+      // Moss taking the north face back.
+      if (r.chance(0.45)) {
+        for (let i = 0; i < 5; i++) {
+          p.blend(r.int(0, TILE - 1), r.int(TILE - 6, TILE - 1), { ...PAL.grassDark, a: 120 });
+        }
+      }
       break;
     }
     case 'window': {
@@ -178,7 +190,7 @@ function drawTile(kind: TerrainKind, variant: number): Pix {
       p.rect(14, 3, 1, 3, PAL.ink);
       p.rect(1, 11, 1, 3, PAL.ink);
       p.rect(14, 11, 1, 3, PAL.ink);
-      speckle(p, r, PAL.rust, 18, 170);                     // eight years of weather
+      speckle(p, r, PAL.rust, 8, 140);                     // eight years of weather
       p.outline(PAL.ink);
       break;
     }

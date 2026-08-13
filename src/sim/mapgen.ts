@@ -64,30 +64,34 @@ const BIOME_BASE: Record<SectorBiome, TerrainKind> = {
 };
 
 /**
- * Target fraction of walkable tiles that touch some cover.
+ * Fraction of the map occupied by *props* — everything blocking that is not a building
+ * wall. This is the readability knob. Below ~8% a map is a bare killing field; above ~20%
+ * the props merge into fields that a player cannot read a route through, and a solid mass
+ * of cover plays exactly like no cover at all.
  *
- * The design target is 15–30%, and the open biomes hold it. Woods, ruins and highway sit
- * above it on purpose: their defining features — dense trees, rubble fields, a wrecked
- * road with ditched verges — *are* cover, and thinning them to 30% would turn woods into a
- * meadow and ruins into a car park. The point of the band is that no biome is a bare
- * killing field and none is a maze; the exact number is per-biome character.
+ * Farmland and highway sit at the bottom (exposed ground, long sightlines); industrial and
+ * ruins at the top; woods is the one biome allowed past it, because its props are trees and
+ * trees are the terrain rather than clutter on it.
  */
-const COVER_BAND: Record<SectorBiome, readonly [number, number]> = {
-  village: [0.20, 0.44],
-  farmland: [0.18, 0.36],
-  woods: [0.50, 0.82],
-  industrial: [0.22, 0.42],
-  highway: [0.24, 0.44],
-  ruins: [0.30, 0.52],
-  military: [0.24, 0.44],
-  swamp: [0.14, 0.30],
+const PROP_BAND: Record<SectorBiome, readonly [number, number]> = {
+  farmland: [0.08, 0.12],
+  highway: [0.09, 0.13],
+  swamp: [0.09, 0.14],
+  village: [0.09, 0.14],
+  military: [0.10, 0.16],
+  industrial: [0.11, 0.17],
+  ruins: [0.11, 0.17],
+  woods: [0.16, 0.21],
 };
 
 /** Walkable-tile fraction band. Kept well inside the 0.45–0.9 sanity range. */
 const WALK_BAND: readonly [number, number] = [0.55, 0.88];
 
+/** Nothing ships with less cover than this fraction of walkable tiles adjacent to some. */
+const MIN_COVER = 0.16;
+
 /** Props the balancer may clump together when a biome comes out too bare. */
-const FILLER_COVER: Record<SectorBiome, readonly TerrainKind[]> = {
+const FILLER_PROPS: Record<SectorBiome, readonly TerrainKind[]> = {
   village: ['fence', 'crate', 'tree'],
   farmland: ['fence', 'tree'],
   woods: ['tree', 'tree', 'rubble'],
@@ -273,8 +277,6 @@ interface BuildingOpts {
   /** Split larger footprints into rooms, always with a doorway between them. */
   partition: boolean;
   floor?: TerrainKind;
-  /** Interior clutter placed on ~this fraction of floor tiles. */
-  clutter?: { kind: TerrainKind; density: number };
 }
 
 /**
@@ -296,14 +298,6 @@ function placeBuilding(c: Ctx, r: Rect, o: BuildingOpts): void {
       const py = r.y + c.rng.int(3, r.h - 4);
       const gap = r.x + c.rng.int(1, r.w - 2);
       for (let x = r.x + 1; x < r.x + r.w - 1; x++) put(c, x, py, x === gap ? 'door' : 'wall');
-    }
-  }
-
-  if (o.clutter) {
-    for (let y = r.y + 1; y < r.y + r.h - 1; y++) {
-      for (let x = r.x + 1; x < r.x + r.w - 1; x++) {
-        if (c.rng.chance(o.clutter.density)) put(c, x, y, o.clutter.kind);
-      }
     }
   }
 
@@ -424,12 +418,7 @@ function genFarmland(c: Ctx): void {
     const bh = c.rng.int(7, 9);
     const r: Rect = { x: c.rng.int(3, c.w - bw - 3), y: c.rng.int(3, c.h - bh - 3), w: bw, h: bh };
     if (!rectFree(c, r, 2)) continue;
-    placeBuilding(c, r, {
-      doors: 2,
-      windows: 4,
-      partition: true,
-      clutter: { kind: 'crate', density: 0.1 },
-    });
+    placeBuilding(c, r, { doors: 2, windows: 4, partition: true });
     break;
   }
 
@@ -522,12 +511,7 @@ function genIndustrial(c: Ctx): void {
       h: bh,
     };
     if (!rectFree(c, r, 3)) continue;
-    placeBuilding(c, r, {
-      doors: 1,
-      windows: c.rng.int(4, 7),
-      partition: true,
-      clutter: { kind: 'crate', density: 0.09 },
-    });
+    placeBuilding(c, r, { doors: 1, windows: c.rng.int(4, 7), partition: true });
     // Bay doors — 3-wide openings, the reason a warehouse is worth fighting over.
     for (let bay = 0; bay < c.rng.int(1, 2); bay++) {
       const side = c.rng.chance(0.5);
@@ -545,13 +529,7 @@ function genIndustrial(c: Ctx): void {
   }
 
   // Crate stacks in the yard, and a few dead trucks.
-  for (let i = 0; i < c.rng.int(6, 10); i++) {
-    const cx = c.rng.int(inset + 1, c.w - inset - 2);
-    const cy = c.rng.int(inset + 1, c.h - inset - 2);
-    for (let n = 0; n < c.rng.int(2, 5); n++) {
-      put(c, cx + c.rng.int(-1, 1), cy + c.rng.int(-1, 1), 'crate');
-    }
-  }
+  clumps(c, c.rng.int(7, 11), 'crate', inset + 1);
   clumps(c, c.rng.int(2, 4), 'car', 2);
 }
 
@@ -700,12 +678,7 @@ function genMilitary(c: Ctx): void {
       if (c.rng.chance(0.2)) continue;
       const r: Rect = { x: ox + rx * (bw + 4), y: oy + ry * (bh + 4), w: bw, h: bh };
       if (!rectFree(c, r, 2)) continue;
-      placeBuilding(c, r, {
-        doors: c.rng.int(1, 2),
-        windows: c.rng.int(3, 5),
-        partition: true,
-        clutter: { kind: 'crate', density: 0.08 },
-      });
+      placeBuilding(c, r, { doors: c.rng.int(1, 2), windows: c.rng.int(3, 5), partition: true });
     }
   }
 
@@ -802,7 +775,7 @@ const PAINTERS: Record<SectorBiome, (c: Ctx) => void> = {
   swamp: genSwamp,
 };
 
-// ─────────────────────────────────────────────────────────────── balance pass
+// ─────────────────────────────────────────────────────────────── measurement
 
 interface MapStats {
   tiles: number;
@@ -858,13 +831,27 @@ function walkableTiles(c: Ctx): Vec2[] {
 const inRoom = (c: Ctx, x: number, y: number): boolean =>
   c.rooms.some((r) => x >= r.x - 1 && x < r.x + r.w + 1 && y >= r.y - 1 && y < r.y + r.h + 1);
 
+/** A building's own fabric: walls, doors and windows belonging to a recorded footprint. */
+const isShell = (c: Ctx, x: number, y: number): boolean => {
+  const k = terrainAt(c.b, x, y);
+  return (k === 'wall' || k === 'door' || k === 'window') && inRoom(c, x, y);
+};
+
 /**
- * Anything the balancer must not touch: a building's shell and its contents, a motor pool's
- * wrecks, a warehouse's crates. Deleting those leaves roofless nonsense and empty sheds.
- * Rubble is exempt because in `ruins` it *is* the interior, and thinning it is legitimate.
+ * A prop is anything blocking that is not a building wall: crates, wrecks, sandbags,
+ * fences, trees, free-standing wall fragments. Prop coverage is the density knob that
+ * decides whether a map reads as a battlefield or as a warehouse of clutter.
  */
-const isProtected = (c: Ctx, x: number, y: number): boolean =>
-  terrainAt(c.b, x, y) !== 'rubble' && inRoom(c, x, y);
+const isProp = (c: Ctx, x: number, y: number): boolean =>
+  !isOpen(c.b, x, y) && !isShell(c, x, y);
+
+function countProps(c: Ctx): number {
+  let n = 0;
+  for (let y = 0; y < c.h; y++) {
+    for (let x = 0; x < c.w; x++) if (isProp(c, x, y)) n++;
+  }
+  return n;
+}
 
 /**
  * The ground to leave behind when a prop is removed — taken from what surrounds it, so
@@ -889,170 +876,145 @@ function groundAround(c: Ctx, x: number, y: number): TerrainKind {
   return best;
 }
 
-/** How many currently-uncovered walkable tiles would become covered if `p` were blocked. */
-function newExposure(c: Ctx, p: Vec2): number {
-  let n = 0;
-  for (const d of DIRS8) {
-    const x = p.x + d.x;
-    const y = p.y + d.y;
-    if (!isOpen(c.b, x, y)) continue;
-    if (!isCoverAdjacent(c.b, x, y)) n++;
+// ─────────────────────────────────────────────────────────────── balance pass
+
+/**
+ * Break every mass of one prop kind down to clumps.
+ *
+ * A solid field of crates is tactically identical to no cover at all: there is nothing to
+ * flank and nowhere to shoot, only an obstacle. What a firefight needs is small blocks with
+ * clear ground between them — the gaps *are* the gameplay, they are the lanes squads move
+ * through and shoot down. So any component above its cap gets sliced on a jittered lattice,
+ * which leaves aisles rather than a hole in the middle.
+ */
+const BLOB_CAP: Partial<Record<TerrainKind, number>> = {
+  crate: 9,
+  car: 9,
+  sandbag: 9,
+  tree: 24,
+};
+
+function capBlobs(c: Ctx): void {
+  const seen = new Uint8Array(c.w * c.h);
+  for (let y0 = 0; y0 < c.h; y0++) {
+    for (let x0 = 0; x0 < c.w; x0++) {
+      const k0 = terrainAt(c.b, x0, y0);
+      const cap = BLOB_CAP[k0];
+      if (cap === undefined || seen[idx(c, x0, y0)] === 1) continue;
+
+      // Flood the contiguous run of this kind.
+      const comp: Vec2[] = [{ x: x0, y: y0 }];
+      seen[idx(c, x0, y0)] = 1;
+      for (let head = 0; head < comp.length; head++) {
+        const p = comp[head]!;
+        for (const d of DIRS4) {
+          const nx = p.x + d.x;
+          const ny = p.y + d.y;
+          if (!inside(c, nx, ny) || seen[idx(c, nx, ny)] === 1) continue;
+          if (terrainAt(c.b, nx, ny) !== k0) continue;
+          seen[idx(c, nx, ny)] = 1;
+          comp.push({ x: nx, y: ny });
+        }
+      }
+      if (comp.length <= cap) continue;
+
+      // Slice it into blocks of (period-1)² with one-tile aisles between them.
+      const period = Math.max(2, Math.floor(Math.sqrt(cap)) + 1);
+      const ox = c.rng.int(0, period - 1);
+      const oy = c.rng.int(0, period - 1);
+      for (const p of comp) {
+        if ((p.x + ox) % period !== 0 && (p.y + oy) % period !== 0) continue;
+        put(c, p.x, p.y, groundAround(c, p.x, p.y), false);
+      }
+    }
   }
-  return n;
 }
 
 /**
- * Push the map into its biome's walkable / cover-adjacency bands.
+ * Bring prop coverage into the biome's band and keep walkability legal.
  *
- * The insight that makes this converge: a *scattered* blocker covers eight tiles, a blocker
- * welded onto an existing mass covers almost none. So the two knobs are not independent —
- * "too much cover, too few walls" is fixed by the same operation from both ends: strip the
- * isolated props, then thicken what is left into proper masses. Both `thicken` and
- * `stripIsolatedCover` move the map toward clumped cover, which is also what reads best on
- * screen: a hedge line and a wrecked truck, not confetti.
- *
- * Anything this pinches off is reopened by `repairConnectivity` afterwards.
+ * Prop coverage is the metric that decides readability, so it drives; walkability follows,
+ * and cover-adjacency is only guarded at the bottom so no biome ships as a bare killing
+ * field. Driving off one number instead of three is what makes this converge.
  */
 function balance(c: Ctx): void {
-  const [coverLo, coverHi] = COVER_BAND[c.biome];
+  const [propLo, propHi] = PROP_BAND[c.biome];
   const [walkLo, walkHi] = WALK_BAND;
+  const tiles = c.w * c.h;
 
-  for (let round = 0; round < 24; round++) {
+  for (let round = 0; round < 14; round++) {
     const s = measure(c.b);
-    if (s.coverFrac > coverHi) {
-      stripIsolatedCover(c, Math.ceil(((s.coverFrac - coverHi) * s.walkable) / 5) + 4);
-      continue;
-    }
-    if (s.walkFrac > walkHi) {
-      thicken(c, Math.ceil((s.walkFrac - walkHi) * s.tiles) + 6);
-      continue;
-    }
-    if (s.coverFrac < coverLo) {
-      addClumps(c, Math.ceil(((coverLo - s.coverFrac) * s.walkable) / 7) + 1, FILLER_COVER[c.biome]);
+    const props = countProps(c) / tiles;
+
+    if (props > propHi) {
+      removeProps(c, Math.ceil((props - propHi) * tiles) + 4);
       continue;
     }
     if (s.walkFrac < walkLo) {
-      clearBlockers(c, Math.ceil((walkLo - s.walkFrac) * s.tiles) + 6);
+      removeProps(c, Math.ceil((walkLo - s.walkFrac) * tiles) + 4);
       continue;
     }
-    return;
+    if (props < propLo || s.walkFrac > walkHi) {
+      const need = Math.max((propLo - props) * tiles, (s.walkFrac - walkHi) * tiles);
+      addClumps(c, Math.ceil(need / 4) + 1, FILLER_PROPS[c.biome]);
+      continue;
+    }
+    // Last guard: somewhere to hide. Only ever raises cover, never lowers it.
+    if (s.coverFrac < MIN_COVER && props < propHi) {
+      addClumps(c, 4, FILLER_PROPS[c.biome]);
+      continue;
+    }
+    break;
   }
-
-  // The two knobs genuinely trade off (every blocker both blocks a tile and covers eight),
-  // so the loop can end mid-swing. Cover gets the last word — it is the one a player feels —
-  // as long as walkability stays inside the hard 0.45–0.9 limit.
-  for (let round = 0; round < 6; round++) {
-    const s = measure(c.b);
-    if (s.coverFrac <= coverHi || s.walkFrac > 0.885) break;
-    stripIsolatedCover(c, Math.ceil(((s.coverFrac - coverHi) * s.walkable) / 5) + 4);
-  }
+  capBlobs(c);
 }
 
-/**
- * Block more ground while exposing as little of it to cover as possible.
- *
- * The good move is closing a gap in something that already exists — the missing plank in a
- * fence, the hole in a wall. Both neighbours already cover the tiles around it, so the map
- * loses a walkable tile and gains almost no cover-adjacency, and it reads as a repair
- * rather than as a new prop. Everything else is spaced out, because pouring fills into the
- * best pocket is exactly how a fence line turns into a featureless slab.
- */
-function thicken(c: Ctx, count: number): void {
-  const placed: Vec2[] = [];
-
-  for (let pass = 0; pass < 8 && placed.length < count; pass++) {
-    const cands: { p: Vec2; score: number; gap: boolean }[] = [];
-    for (let y = 1; y < c.h - 1; y++) {
-      for (let x = 1; x < c.w - 1; x++) {
-        if (!isOpen(c.b, x, y) || inRoom(c, x, y) || c.reserved[idx(c, x, y)] === 1) continue;
-        const gap =
-          (!isOpen(c.b, x - 1, y) && !isOpen(c.b, x + 1, y)) ||
-          (!isOpen(c.b, x, y - 1) && !isOpen(c.b, x, y + 1));
-        const hugging = 8 - openNeighbours(c.b, x, y);
-        if (hugging < 2) continue;
-        cands.push({ p: { x, y }, score: (gap ? 12 : 0) + hugging - 2 * newExposure(c, { x, y }), gap });
-      }
-    }
-    if (cands.length === 0) return;
-    c.rng.shuffle(cands);
-    cands.sort((a, z) => z.score - a.score);
-
-    let before = placed.length;
-    for (const { p, gap } of cands) {
-      if (placed.length >= count) break;
-      // Gap-closers are constrained by the line they sit in and cannot blob; everything
-      // else keeps its distance.
-      if (!gap && placed.some((q) => chebyshev(p, q) < 2)) continue;
-      let kind: TerrainKind = 'rubble';
-      for (const d of DIRS4) {
-        const k = terrainAt(c.b, p.x + d.x, p.y + d.y);
-        if (!TERRAIN[k].walkable && k !== 'window' && k !== 'door') {
-          kind = k;
-          break;
-        }
-      }
-      put(c, p.x, p.y, kind);
-      placed.push(p);
-    }
-    if (placed.length === before) return;
-  }
-}
-
-/** Small clusters of cover dropped into bare ground. The fix for a map with nothing to hide behind. */
-function addClumps(c: Ctx, clumps: number, props: readonly TerrainKind[]): void {
+/** Small deliberate clusters of 2–6 tiles dropped into bare ground, never indoors. */
+function addClumps(c: Ctx, count: number, props: readonly TerrainKind[]): void {
   const bare = c.rng.shuffle(walkableTiles(c).filter((p) => !isCoverAdjacent(c.b, p.x, p.y)));
+  const fallback = c.rng.shuffle(walkableTiles(c));
   let placed = 0;
-  for (const p of bare) {
-    if (placed >= clumps) break;
+  for (const p of [...bare, ...fallback]) {
+    if (placed >= count) break;
+    if (inRoom(c, p.x, p.y) || c.reserved[idx(c, p.x, p.y)] === 1) continue;
     if (!isOpen(c.b, p.x, p.y) || openNeighbours(c.b, p.x, p.y) < 7) continue;
     const kind = c.rng.pick(props);
     put(c, p.x, p.y, kind);
-    const run = c.rng.int(1, 3);
-    const dir = c.rng.pick(DIRS4);
-    for (let i = 1; i <= run; i++) {
-      const q = { x: p.x + dir.x * i, y: p.y + dir.y * i };
-      if (!isOpen(c.b, q.x, q.y) || openNeighbours(c.b, q.x, q.y) < 6) break;
+    // Grow a short L, not a field: 1–5 more tiles, and stop the moment it would merge
+    // with something already there.
+    let at: Vec2 = p;
+    for (let i = c.rng.int(1, 5); i > 0; i--) {
+      const d = c.rng.pick(DIRS8);
+      const q: Vec2 = { x: at.x + d.x, y: at.y + d.y };
+      if (!isOpen(c.b, q.x, q.y) || openNeighbours(c.b, q.x, q.y) < 5) break;
+      if (inRoom(c, q.x, q.y) || c.reserved[idx(c, q.x, q.y)] === 1) break;
       put(c, q.x, q.y, kind);
+      at = q;
     }
     placed++;
   }
 }
 
-/** Open up blocked tiles that are not part of a recorded building. */
-function clearBlockers(c: Ctx, count: number): void {
-  const cands: Vec2[] = [];
-  for (let y = 0; y < c.h; y++) {
-    for (let x = 0; x < c.w; x++) {
-      if (!isOpen(c.b, x, y) && !isProtected(c, x, y)) cands.push({ x, y });
-    }
-  }
-  for (const p of c.rng.shuffle(cands).slice(0, count)) put(c, p.x, p.y, groundAround(c, p.x, p.y), false);
-}
-
 /**
- * Remove the cover tiles that buy the least: the loners standing in the open, which are
- * exactly the ones that inflate cover-adjacency while looking like litter. Buildings are
- * never touched.
+ * Thin props out, loneliest first. Building shells and anything inside a recorded footprint
+ * are never touched — deleting those leaves roofless nonsense and empty sheds.
  */
-function stripIsolatedCover(c: Ctx, count: number): void {
-  const cands: { p: Vec2; neighbours: number }[] = [];
+function removeProps(c: Ctx, count: number): void {
+  const cands: { p: Vec2; score: number }[] = [];
   for (let y = 0; y < c.h; y++) {
     for (let x = 0; x < c.w; x++) {
-      if (TERRAIN[terrainAt(c.b, x, y)].cover === 0) continue;
-      if (isProtected(c, x, y)) continue;
+      if (!isProp(c, x, y) || inRoom(c, x, y)) continue;
       let neighbours = 0;
-      for (const d of DIRS8) {
-        if (TERRAIN[terrainAt(c.b, x + d.x, y + d.y)].cover > 0) neighbours++;
-      }
+      for (const d of DIRS8) if (isProp(c, x + d.x, y + d.y)) neighbours++;
       // Fences and sandbags are placed on purpose and carry the biome's read, so they are
       // thinned only after the loose trees, crates and wrecks have gone.
       const k = terrainAt(c.b, x, y);
       const deliberate = k === 'fence' || k === 'sandbag' ? 3 : 0;
-      cands.push({ p: { x, y }, neighbours: neighbours + deliberate });
+      cands.push({ p: { x, y }, score: neighbours + deliberate });
     }
   }
   c.rng.shuffle(cands);
-  cands.sort((a, z) => a.neighbours - z.neighbours);
+  cands.sort((a, z) => a.score - z.score);
   for (const { p } of cands.slice(0, count)) put(c, p.x, p.y, groundAround(c, p.x, p.y), false);
 }
 
@@ -1119,7 +1081,17 @@ function opened(k: TerrainKind, base: TerrainKind): TerrainKind {
  * opening only the tiles on that chain. The result prefers going around cover and breaches
  * exactly one wall when going around is impossible.
  */
-function repairConnectivity(c: Ctx, from: Vec2, targets: readonly Vec2[]): void {
+interface Flow {
+  start: number;
+  parent: Int32Array;
+}
+
+/**
+ * 4-way Dijkstra from `from` where entering a blocked tile costs what it would cost to
+ * knock it down. Shared by the connectivity repair and the lane pass: both want "the
+ * cheapest way across", they just do different things with the answer.
+ */
+function flowFrom(c: Ctx, from: Vec2, shellCost = 0): Flow {
   const n = c.w * c.h;
   const cost = new Int32Array(n).fill(0x7fffffff);
   const parent = new Int32Array(n).fill(-1);
@@ -1140,7 +1112,9 @@ function repairConnectivity(c: Ctx, from: Vec2, targets: readonly Vec2[]): void 
         if (!inside(c, nx, ny)) continue;
         const nk = ny * c.w + nx;
         const kind = terrainAt(c.b, nx, ny);
-        const step = TERRAIN[kind].walkable ? 1 : BREAK_COST[kind];
+        const step = TERRAIN[kind].walkable
+          ? 1
+          : BREAK_COST[kind] + (shellCost > 0 && isShell(c, nx, ny) ? shellCost : 0);
         const nd = d + step;
         if (nd >= (cost[nk] ?? 0)) continue;
         cost[nk] = nd;
@@ -1150,20 +1124,82 @@ function repairConnectivity(c: Ctx, from: Vec2, targets: readonly Vec2[]): void 
       }
     }
   }
+  return { start, parent };
+}
 
+/** Tile indices from `target` back to the flow's origin, origin excluded. */
+function chainTo(c: Ctx, flow: Flow, target: Vec2): number[] {
+  const out: number[] = [];
+  if (!inside(c, target.x, target.y)) return out;
+  let k = idx(c, target.x, target.y);
+  const limit = c.w * c.h;
+  while (k !== flow.start && k >= 0 && out.length < limit) {
+    out.push(k);
+    k = flow.parent[k] ?? -1;
+  }
+  return out;
+}
+
+/**
+ * Guarantee reachability by construction: walk the parent chain back from every target and
+ * open only the tiles on it. Prefers going around cover, and breaches exactly one wall when
+ * going around is impossible.
+ */
+function repairConnectivity(c: Ctx, from: Vec2, targets: readonly Vec2[]): void {
+  const flow = flowFrom(c, from);
   for (const t of targets) {
-    if (!inside(c, t.x, t.y)) continue;
-    let k = idx(c, t.x, t.y);
-    let guard = 0;
-    while (k !== start && k >= 0 && guard++ < n) {
+    for (const k of chainTo(c, flow, t)) {
       const x = k % c.w;
       const y = (k - x) / c.w;
       if (!isOpen(c.b, x, y)) {
         put(c, x, y, opened(terrainAt(c.b, x, y), c.base), false);
       }
-      k = parent[k] ?? -1;
     }
   }
+}
+
+/**
+ * Carve open approach lanes from the deployment edge to the far side.
+ *
+ * Connectivity alone is not playability: a single-file path through a crate field is a
+ * kill-box, not an approach. This clears props (never buildings) a few tiles either side of
+ * several cheapest routes, so a squad always has more than one readable way in and can
+ * bound between them. Buildings are given a heavy cost so lanes run *past* them rather than
+ * through them — which is also what puts the buildings on the flanks of the approach, where
+ * they are worth fighting over.
+ */
+function carveLanes(c: Ctx, from: Vec2, targets: readonly Vec2[], halfWidth: number): void {
+  const flow = flowFrom(c, from, 400);
+  for (const t of targets) {
+    for (const k of chainTo(c, flow, t)) {
+      const cx = k % c.w;
+      const cy = (k - cx) / c.w;
+      for (let y = cy - halfWidth; y <= cy + halfWidth; y++) {
+        for (let x = cx - halfWidth; x <= cx + halfWidth; x++) {
+          if (!inside(c, x, y) || !isProp(c, x, y)) continue;
+          put(c, x, y, groundAround(c, x, y), false);
+        }
+      }
+      if (!isOpen(c.b, cx, cy)) put(c, cx, cy, opened(terrainAt(c.b, cx, cy), c.base), false);
+    }
+  }
+}
+
+/** Three points spread along the edge opposite the squad's, for the lane pass to reach. */
+function farEdgePoints(c: Ctx, edge: Edge): Vec2[] {
+  const at = (t: number): Vec2 => {
+    switch (edge) {
+      case 'n':
+        return { x: Math.round(t * (c.w - 1)), y: c.h - 2 };
+      case 's':
+        return { x: Math.round(t * (c.w - 1)), y: 1 };
+      case 'w':
+        return { x: c.w - 2, y: Math.round(t * (c.h - 1)) };
+      case 'e':
+        return { x: 1, y: Math.round(t * (c.h - 1)) };
+    }
+  };
+  return [at(0.2), at(0.5), at(0.8)];
 }
 
 // ─────────────────────────────────────────────────────────────── spawn placement
@@ -1311,6 +1347,9 @@ function build(opts: MapGenOptions, w: number, h: number, layoutSeed: number): G
 
   // Player squad: a tight cluster on its edge.
   const anchor = edgeAnchor(c, edge);
+  // Three open approaches from the deployment edge, so the squad has options rather than
+  // one corridor. Done before spawning so the lanes are part of the map, not a scar on it.
+  carveLanes(c, anchor, farEdgePoints(c, edge), 1);
   const cluster = clusterAround(c, anchor, 10);
   if (cluster.length < 6) return null;
   const playerSpawns = cluster.slice(0, 8);

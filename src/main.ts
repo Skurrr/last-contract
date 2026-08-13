@@ -43,7 +43,31 @@ function resize(): void {
   canvas.style.width = `${w}px`;
   canvas.style.height = `${h}px`;
   controller?.resize(w, h);
+  applyHudInsets();
   dirty = true;
+}
+
+/**
+ * Tell the camera how much of the canvas the HUD is sitting on top of. Measured from the
+ * live DOM rather than hard-coded, so the responsive breakpoints in styles.css cannot drift
+ * out of sync with the framing.
+ */
+function applyHudInsets(): void {
+  if (!controller) return;
+  const rectOf = (sel: string): DOMRect | null =>
+    document.querySelector(sel)?.getBoundingClientRect() ?? null;
+
+  const squad = rectOf('.hud-squad');
+  const recon = rectOf('.hud-recon');
+  const actions = rectOf('.hud-actions');
+  const banner = rectOf('.hud-banner');
+
+  controller.camera.setInsets(
+    squad?.width ? squad.right : 0,
+    recon?.width ? canvas.width - recon.left : 0,
+    banner?.height ? banner.bottom : 0,
+    actions?.height ? canvas.height - actions.top : 0,
+  );
 }
 
 // ─────────────────────────────────────────────────────────────── level-up queue
@@ -106,7 +130,11 @@ function startSkirmish(seed: number, roster: MercState[]): void {
 
   controller = ctrl;
   hud = new Hud(hudHost, ctrl);
+  hud.update();
   resize();
+  // Insets need the HUD in the DOM, and the opening framing needs the insets.
+  applyHudInsets();
+  ctrl.frameOnSquad();
   dirty = true;
 }
 

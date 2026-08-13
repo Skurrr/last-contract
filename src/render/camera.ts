@@ -21,6 +21,16 @@ export class Camera {
   private targetY = 0;
   private targetZoom = 1;
 
+  /**
+   * Screen margins occluded by HUD chrome. The camera centres on the *visible* ground rather
+   * than on the canvas, so a merc standing near the map edge is never parked underneath the
+   * squad panel — which is exactly what happened before this existed.
+   */
+  insetLeft = 0;
+  insetRight = 0;
+  insetTop = 0;
+  insetBottom = 0;
+
   constructor(
     public viewW: number,
     public viewH: number,
@@ -31,6 +41,31 @@ export class Camera {
   /** Pixels per world tile at the current zoom. */
   get tileSize(): number {
     return TILE_PX * BASE_SCALE * this.zoom;
+  }
+
+  setInsets(left: number, right: number, top: number, bottom: number): void {
+    this.insetLeft = left;
+    this.insetRight = right;
+    this.insetTop = top;
+    this.insetBottom = bottom;
+  }
+
+  /** Centre of the unoccluded region, in screen pixels. */
+  private get centerX(): number {
+    return this.insetLeft + (this.viewW - this.insetLeft - this.insetRight) / 2;
+  }
+
+  private get centerY(): number {
+    return this.insetTop + (this.viewH - this.insetTop - this.insetBottom) / 2;
+  }
+
+  /** Viewport dimensions actually available for the map. */
+  private get usableW(): number {
+    return Math.max(120, this.viewW - this.insetLeft - this.insetRight);
+  }
+
+  private get usableH(): number {
+    return Math.max(120, this.viewH - this.insetTop - this.insetBottom);
   }
 
   centerOn(tile: Vec2, immediate = false): void {
@@ -66,14 +101,14 @@ export class Camera {
     const ts = TILE_PX * BASE_SCALE;
     return Math.max(
       MIN_ZOOM,
-      Math.min(MAX_ZOOM, Math.min(this.viewW / (this.worldW * ts), this.viewH / (this.worldH * ts))),
+      Math.min(MAX_ZOOM, Math.min(this.usableW / (this.worldW * ts), this.usableH / (this.worldH * ts))),
     );
   }
 
   private clampTarget(): void {
     const ts = TILE_PX * BASE_SCALE;
-    const halfW = this.viewW / (2 * this.zoom);
-    const halfH = this.viewH / (2 * this.zoom);
+    const halfW = this.usableW / (2 * this.zoom);
+    const halfH = this.usableH / (2 * this.zoom);
     const wpx = this.worldW * ts;
     const hpx = this.worldH * ts;
     // When the map is smaller than the viewport, pin it centred rather than letting it drift.
@@ -98,7 +133,7 @@ export class Camera {
   /** Apply the camera transform. Call `ctx.restore()` when done drawing the world. */
   apply(ctx: CanvasRenderingContext2D, shakeX = 0, shakeY = 0): void {
     ctx.save();
-    ctx.translate(this.viewW / 2, this.viewH / 2);
+    ctx.translate(this.centerX, this.centerY);
     ctx.scale(this.zoom, this.zoom);
     ctx.translate(-this.x + shakeX, -this.y + shakeY);
   }
@@ -106,16 +141,16 @@ export class Camera {
   /** World pixel → screen pixel. */
   toScreen(wx: number, wy: number, shakeX = 0, shakeY = 0): { x: number; y: number } {
     return {
-      x: (wx - this.x + shakeX) * this.zoom + this.viewW / 2,
-      y: (wy - this.y + shakeY) * this.zoom + this.viewH / 2,
+      x: (wx - this.x + shakeX) * this.zoom + this.centerX,
+      y: (wy - this.y + shakeY) * this.zoom + this.centerY,
     };
   }
 
   /** Screen pixel → world tile. */
   toTile(sx: number, sy: number): Vec2 {
     const ts = TILE_PX * BASE_SCALE;
-    const wx = (sx - this.viewW / 2) / this.zoom + this.x;
-    const wy = (sy - this.viewH / 2) / this.zoom + this.y;
+    const wx = (sx - this.centerX) / this.zoom + this.x;
+    const wy = (sy - this.centerY) / this.zoom + this.y;
     return { x: Math.floor(wx / ts), y: Math.floor(wy / ts) };
   }
 
@@ -128,8 +163,8 @@ export class Camera {
   /** Inclusive tile bounds currently on screen, padded by one tile. */
   visibleBounds(): { x0: number; y0: number; x1: number; y1: number } {
     const ts = TILE_PX * BASE_SCALE;
-    const halfW = this.viewW / (2 * this.zoom);
-    const halfH = this.viewH / (2 * this.zoom);
+    const halfW = this.usableW / (2 * this.zoom);
+    const halfH = this.usableH / (2 * this.zoom);
     return {
       x0: Math.max(0, Math.floor((this.x - halfW) / ts) - 1),
       y0: Math.max(0, Math.floor((this.y - halfH) / ts) - 1),
