@@ -104,6 +104,15 @@ const COVER_VALUE: Record<CoverLevel, number> = { 0: -1.0, 1: 0.7, 2: 1.5 };
 /** Weapons this long want a stable firing position. */
 const LONG_RANGE = 10;
 
+/**
+ * Turns a human will hold a prepared position with nothing in sight before it stops waiting
+ * and goes looking. Without this, two sides in good cover on opposite ends of a sector both
+ * score every move as worse than staying put, and the battle never resolves.
+ */
+const PATIENCE = 2;
+/** Garrison troops (`defends_home`) are paid to sit on a wall; they wait a lot longer. */
+const GARRISON_PATIENCE = 6;
+
 // ─────────────────────────────────────────────────────────────── public API
 
 /**
@@ -488,6 +497,12 @@ interface ShotChoice {
 }
 
 /**
+ * How a unit is carrying itself this activation: working a firing position, running from
+ * one, or closing because holding has stopped paying.
+ */
+type PostureMode = 'hold' | 'retreat' | 'press';
+
+/**
  * One human decision. In rough order: fix the gun, take a good shot, get behind something,
  * settle in, or watch a lane. A broken unit inverts the middle of that list and runs.
  */
@@ -509,12 +524,13 @@ function humanStep(b: BattleState, u: Unit, sink: EventSink, ctx: AiCtx, memo: M
   // Dry magazine. Reloading in the open is bad, but an empty gun is worse.
   if (w.inst.loaded <= 0) {
     if (reload(b, u, sink).ok) return true;
-    return hold(b, u, sink, visible, w, broken, memo);
+    return hold(b, u, sink, visible, w, broken, memo, false);
   }
 
   const best = broken ? bestShot(b, u, visible.filter((t) => chebyshev(u.pos, t.pos) <= 2), w)
                       : bestShot(b, u, visible, w);
-  if (best && best.score >= SHOOT_THRESHOLD) {
+  const worthShooting = best !== null && best.score >= SHOOT_THRESHOLD;
+  if (worthShooting && best) {
     return shoot(b, u, best.target, best.plan, sink).ok;
   }
 
@@ -522,25 +538,72 @@ function humanStep(b: BattleState, u: Unit, sink: EventSink, ctx: AiCtx, memo: M
   const pinned = hasStatus(u, 'suppressed') &&
     visible.some((t) => coverAgainst(b, u.pos, t.pos) > 0);
 
+  // `u.calm` counts this unit's own turns since it was last hurt, which is the cheapest
+  // honest measure of "how long since anything happened to me". Nothing has happened for a
+  // while and there is no shot worth taking — so holding this position has stopped paying.
+  const stale = u.calm >= patienceOf(u, broken);
+  const pressing = stale && !worthShooting;
+
   if (!pinned && visible.length > 0) {
-    const moved = reposition(b, u, sink, visible, w, broken, memo);
+    const mode: PostureMode = broken ? 'retreat' : pressing ? 'press' : 'hold';
+    const moved = reposition(b, u, sink, visible, w, mode, memo);
     if (moved !== 'none') return moved === 'acted';
   }
 
-  // Nothing in sight: walk toward whatever it can hear, or the last known contact.
-  if (visible.length === 0 && !broken && memo.moves === 0) {
+  // Nothing in sight: work the leads — something heard, the last place it was seen, the
+  // loudest recent noise — and if they all come up empty for long enough, go find the fight.
+  if (visible.length === 0 && (!broken || pressing) && memo.moves === 0) {
     const heard = nearest(u.pos, hostiles.filter((t) => chebyshev(u.pos, t.pos) <= senseRadiusOf(u)));
     if (heard && advanceOnUnit(b, u, heard, sink)) { memo.moves++; return true; }
+
     const remembered = u.target;
-    if (remembered && !eq(remembered, u.pos) && advanceToward(b, u, remembered, sink)) {
-      memo.moves++;
-      return true;
+    if (remembered && !eq(remembered, u.pos)) {
+      if (advanceToward(b, u, remembered, sink)) { memo.moves++; return true; }
+    } else if (remembered) {
+      delete u.target; // standing on the last known position: the trail is cold
     }
+
     const heardNoise = loudestNearby(b, u, ctx, NOISE_SCAN);
     if (heardNoise && advanceToward(b, u, heardNoise, sink)) { memo.moves++; return true; }
+
+    if (pressing && press(b, u, sink, hostiles, memo)) return true;
   }
 
-  return hold(b, u, sink, visible, w, broken, memo);
+  return hold(b, u, sink, visible, w, broken, memo, pressing);
+}
+
+/** How many silent turns this unit will sit on a position before it goes hunting. */
+function patienceOf(u: Unit, broken: boolean): number {
+  const base = ENEMIES[u.defId]?.special === 'defends_home' ? GARRISON_PATIENCE : PATIENCE;
+  // A frightened man takes longer to decide the shooting has stopped — but he does decide.
+  return broken ? base + 3 : base;
+}
+
+/**
+ * Break the deadlock. Every lead has gone cold, so the unit gets up and walks toward the
+ * nearest hostile — a firefight two streets over is not something a person sits out. This is
+ * the only place the AI uses knowledge it has not earned by sight or sound, and it takes
+ * several silent turns to unlock, so it never overrides the cover-and-contact behaviour.
+ */
+function press(
+  b: BattleState,
+  u: Unit,
+  sink: EventSink,
+  hostiles: readonly Unit[],
+  memo: Memo,
+): boolean {
+  // Crawling across a sector is not walking across it.
+  if (u.stance !== 'standing' && memo.stances === 0 && setStance(b, u, 'standing', sink).ok) {
+    memo.stances++;
+    return true;
+  }
+  const quarry = nearest(u.pos, hostiles);
+  if (quarry && advanceOnUnit(b, u, quarry, sink)) {
+    u.target = quarry.pos;
+    memo.moves++;
+    return true;
+  }
+  return false;
 }
 
 /** Melee-only humans: a machete cultist has exactly one plan and commits to it. */
@@ -575,12 +638,14 @@ function hold(
   w: ResolvedWeapon | null,
   broken: boolean,
   memo: Memo,
+  pressing: boolean,
 ): boolean {
   const exposed = visible.some((t) => coverAgainst(b, u.pos, t.pos) === 0);
 
   // Long-range shooters and anyone caught in the open get low — but only if they have not
-  // already spent AP standing up to move this activation.
-  if (w && (w.rangeOptimal >= LONG_RANGE || exposed || broken) && u.stance === 'standing' && memo.stances === 0) {
+  // already spent AP standing up to move this activation, and never while pressing: lying
+  // down in an empty field is how a unit talks itself into never crossing it.
+  if (!pressing && w && (w.rangeOptimal >= LONG_RANGE || exposed || broken) && u.stance === 'standing' && memo.stances === 0) {
     const want = w.rangeOptimal >= LONG_RANGE && !broken ? 'prone' : 'crouched';
     if (setStance(b, u, want, sink).ok) {
       memo.stances++;
@@ -729,13 +794,13 @@ function reposition(
   sink: EventSink,
   threats: readonly Unit[],
   w: ResolvedWeapon | null,
-  retreat: boolean,
+  mode: PostureMode,
   memo: Memo,
 ): 'acted' | 'failed' | 'none' {
   if (memo.moves > 0) return 'none'; // one considered move per activation is enough
 
   // Prone and crouched units barely move; stand up before crossing ground.
-  const needsLegs = retreat || threats.every((t) => chebyshev(u.pos, t.pos) > 3);
+  const needsLegs = mode !== 'hold' || threats.every((t) => chebyshev(u.pos, t.pos) > 3);
   if (u.stance !== 'standing' && needsLegs) {
     if (memo.stances > 0) return 'none';
     if (!setStance(b, u, 'standing', sink).ok) return 'none';
@@ -743,14 +808,14 @@ function reposition(
     return 'acted';
   }
 
-  const here = scoreTile(b, u, u.pos, threats, w, retreat, 0);
+  const here = scoreTile(b, u, u.pos, threats, w, mode, 0);
   const tiles = reachable(b, u, u.ap);
   let bestScore = here + MOVE_IMPROVEMENT;
   let bestAt: Vec2 | null = null;
 
   for (const [k, cost] of tiles) {
     const p = unkey(k);
-    const s = scoreTile(b, u, p, threats, w, retreat, cost);
+    const s = scoreTile(b, u, p, threats, w, mode, cost);
     if (s > bestScore) {
       bestScore = s;
       bestAt = p;
@@ -771,6 +836,10 @@ function reposition(
  * range term that keeps riflemen out of knife range and shotguns out of long lanes. Tiles no
  * threat can see are safe but useless — worth a lot when retreating, very little otherwise.
  * Movement cost is charged against the score so a unit does not spend its whole turn walking.
+ *
+ * `press` keeps all of that and adds a closing term, for the case where the enemy is in
+ * sight but out of any useful range: cover still shapes the route, it just stops being a
+ * reason to stand still.
  */
 function scoreTile(
   b: BattleState,
@@ -778,11 +847,19 @@ function scoreTile(
   at: Vec2,
   threats: readonly Unit[],
   w: ResolvedWeapon | null,
-  retreat: boolean,
+  mode: PostureMode,
   cost: number,
 ): number {
+  const retreat = mode === 'retreat';
   let score = 0;
   let seenBy = 0;
+
+  if (mode === 'press') {
+    const now = Math.min(...threats.map((t) => chebyshev(u.pos, t.pos)));
+    const then = Math.min(...threats.map((t) => chebyshev(at, t.pos)));
+    // Ground gained on the nearest threat, capped so it cannot drown out cover entirely.
+    score += Math.max(-1.5, Math.min(2.0, (now - then) * 0.5));
+  }
 
   for (const t of threats) {
     const danger = dangerOf(u, t);
@@ -790,7 +867,9 @@ function scoreTile(
     const los = d <= sightRange(b, t) && traceSight(b, at, t.pos).clear;
 
     if (!los) {
-      score += (retreat ? 1.2 : 0.2) * danger;
+      // Out of sight is worth a lot when running, a little when holding, and nothing when
+      // closing — a unit that is pressing does not get to call an empty street progress.
+      score += (retreat ? 1.2 : mode === 'press' ? 0 : 0.2) * danger;
       continue;
     }
     seenBy++;
@@ -813,7 +892,7 @@ function scoreTile(
     }
   }
 
-  if (!retreat && seenBy === 0) score -= 1.5; // nothing to shoot from here
+  if (mode === 'hold' && seenBy === 0) score -= 1.5; // nothing to shoot from here
   // AP spent walking is AP not shooting — unless it is running, in which case that is fine.
   score -= cost * (retreat ? 0.02 : 0.06);
   return score;
