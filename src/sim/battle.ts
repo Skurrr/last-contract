@@ -316,6 +316,7 @@ export function advancePhase(b: BattleState, sink = new EventSink()): Phase {
       // Wrapped past the end of the round.
       b.turn++;
       decayNoise(b);
+      emitLivingScent(b);
       tickObjectives(b, sink);
     }
     b.phase = next;
@@ -327,6 +328,34 @@ export function advancePhase(b: BattleState, sink = new EventSink()): Phase {
   sink.push({ t: 'phase', phase: b.phase, turn: b.turn });
   checkOutcome(b, sink);
   return b.phase;
+}
+
+/** How often the living give themselves away, in rounds. */
+const SCENT_INTERVAL = 3;
+/** Wide reach, so the gradient is followable from across the map. */
+const SCENT_RADIUS = 30;
+/**
+ * Peak intensity, deliberately just below a single footstep (~0.15). Any real sound
+ * outranks it, so a quiet squad still chooses when the fight happens — it just cannot
+ * hide from the dead forever.
+ */
+const SCENT_PEAK = 0.13;
+
+/**
+ * The living are never entirely silent. Every few rounds each breathing unit leaks a faint,
+ * wide signal that the dead drift toward.
+ *
+ * Without this, zombies with no sound to follow wander at random and a "clear all hostiles"
+ * objective degenerates into hunting the last shambler across the whole map — measured at
+ * 20% of battles stalling out. The intensity is far below any real noise, so a squad that
+ * stays quiet still controls when the fight happens; it just cannot hide forever.
+ */
+function emitLivingScent(b: BattleState): void {
+  if (b.turn % SCENT_INTERVAL !== 0) return;
+  for (const u of b.units) {
+    if (!u.alive || u.kind === 'zombie') continue;
+    emitNoise(b, u.pos, SCENT_RADIUS, SCENT_PEAK);
+  }
 }
 
 /** End the active unit's turn by zeroing its AP into reserve. */

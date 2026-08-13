@@ -338,8 +338,12 @@ const NOISE_REFERENCE = 40;
  * at 1.0 at its origin, and a footstep next to a zombie would outrank a rifle across the
  * street. Encoding real loudness is what makes a suppressor a tactical choice.
  */
-export function emitNoise(b: BattleState, at: Vec2, radius: number): void {
+export function emitNoise(b: BattleState, at: Vec2, radius: number, peak?: number): void {
   if (radius <= 0) return;
+  // Reach and loudness are separate axes. By default a bigger sound also carries further,
+  // but `peak` lets a caller describe something that is very quiet yet spreads a long way —
+  // which is exactly the shape of a scent trail.
+  const amplitude = peak ?? radius / NOISE_REFERENCE;
   const r = Math.ceil(radius);
   for (let y = at.y - r; y <= at.y + r; y++) {
     for (let x = at.x - r; x <= at.x + r; x++) {
@@ -353,7 +357,7 @@ export function emitNoise(b: BattleState, at: Vec2, radius: number): void {
         const p = trace[i]!;
         if (infoAt(b, p.x, p.y).blocksSight) muffle += 2.5;
       }
-      const v = Math.min(1, Math.max(0, (radius - d - muffle) / NOISE_REFERENCE));
+      const v = Math.min(1, Math.max(0, amplitude * (1 - (d + muffle) / radius)));
       const i = y * b.w + x;
       if (v > (b.noise[i] ?? 0)) b.noise[i] = v;
     }
