@@ -173,7 +173,8 @@ describe('field issue', () => {
     const { createMercState } = await import('@/sim/spawn');
     const { SECTORS } = await import('@/data/sectors');
 
-    const supplies: Record<string, number> = { frag: 4 };
+    // 'nail-bomb' is the shop id; a merc carries it as the thrown weapon 'frag'.
+    const supplies: Record<string, number> = { 'nail-bomb': 4 };
     const dep = deploy({
       seed: 4242,
       sector: SECTORS[0]!,
@@ -187,7 +188,7 @@ describe('field issue', () => {
     );
     // Bricks takes up to three, Nine up to one, so all four leave the stash.
     expect(carried).toBeGreaterThanOrEqual(4);
-    expect(supplies['frag']).toBe(0);
+    expect(supplies['nail-bomb']).toBe(0);
   });
 
   it('still issues a standard kit when the stash is empty', async () => {

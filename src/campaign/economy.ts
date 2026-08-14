@@ -13,6 +13,7 @@
  * driving a cart in circles.
  */
 import { ATTACHMENTS } from '@/data/attachments';
+import { CONSUMABLE_LIST } from '@/data/consumables';
 import { MATERIAL_INFO, RECIPES, SCRAP_YIELD, improvisedQuality } from '@/data/crafting';
 import { FACTIONS, type TradeCategory } from '@/data/factions';
 import { MERCS } from '@/data/mercs';
@@ -44,49 +45,15 @@ export type MarketKind = 'weapon' | 'attachment' | 'material' | 'consumable' | '
  * Consumables have no def file yet (`src/data/consumables.ts` is referenced by crafting.ts
  * but unwritten), so the campaign layer carries their prices until it lands.
  */
-const CONSUMABLE_VALUE: Record<string, number> = {
-  bandage: 25,
-  medkit: 120,
-  'trauma-kit': 320,
-  antibiotics: 180,
-  'adrenaline-shot': 150,
-  molotov: 60,
-  'pipe-bomb': 90,
-  'nail-bomb': 160,
-  noisemaker: 45,
-  'road-flare': 30,
-  'smoke-pot': 70,
-  'repair-kit': 110,
-  'armour-patch': 95,
-  'ammo-9mm': 3,
-  'ammo-45acp': 4,
-  'ammo-556': 5,
-  'ammo-762': 6,
-  'ammo-12ga': 5,
-  'ammo-338': 14,
-};
+// Prices and categories now come from the consumables catalogue rather than from tables
+// kept here. Three copies of these ids used to exist and none of them agreed.
+const CONSUMABLE_VALUE: Record<string, number> = Object.fromEntries(
+  CONSUMABLE_LIST.map((c) => [c.id, c.value]),
+);
 
-const CONSUMABLE_CATEGORY: Record<string, TradeCategory> = {
-  bandage: 'medicine',
-  medkit: 'medicine',
-  'trauma-kit': 'medicine',
-  antibiotics: 'medicine',
-  'adrenaline-shot': 'chems',
-  molotov: 'weapons',
-  'pipe-bomb': 'weapons',
-  'nail-bomb': 'weapons',
-  noisemaker: 'materials',
-  'road-flare': 'materials',
-  'smoke-pot': 'materials',
-  'repair-kit': 'materials',
-  'armour-patch': 'armour',
-  'ammo-9mm': 'ammo',
-  'ammo-45acp': 'ammo',
-  'ammo-556': 'ammo',
-  'ammo-762': 'ammo',
-  'ammo-12ga': 'ammo',
-  'ammo-338': 'ammo',
-};
+const CONSUMABLE_CATEGORY: Record<string, TradeCategory> = Object.fromEntries(
+  CONSUMABLE_LIST.map((c) => [c.id, c.category as TradeCategory]),
+);
 
 // ─────────────────────────────────────────────────────────────── merc mods
 

@@ -7,6 +7,7 @@
  */
 import { Rng } from '@/core/rng';
 import type { Vec2 } from '@/core/grid';
+import { ORDNANCE, throwsAs } from '@/data/consumables';
 import { ENEMIES, ZOMBIE_IDS } from '@/data/enemies';
 import { FACTIONS } from '@/data/factions';
 import { SECTORS, type SectorBiome, type SectorDef } from '@/data/sectors';
@@ -139,8 +140,8 @@ export function deploy(opts: DeployOptions): Deployment {
   return { battle: b, squad, sector: opts.sector };
 }
 
-/** Every thrown item the catalogue knows about, best first. */
-const ORDNANCE_PRIORITY = ['frag', 'pipebomb', 'molotov', 'smoke', 'chattercan'] as const;
+/** Consumable ids the company can issue as ordnance, best first. */
+const ORDNANCE_PRIORITY: string[] = ORDNANCE.map((c) => c.id);
 
 /**
  * Field issue of thrown ordnance.
@@ -160,9 +161,13 @@ function issueThrowables(u: Unit, supplies?: Record<string, number>): void {
   let allowance = skill >= 8 ? 3 : skill >= 5 ? 2 : 1;
   if (supplies) {
     for (const id of ORDNANCE_PRIORITY) {
+      const weaponId = throwsAs(id);
+      if (!weaponId) continue;
       while (allowance > 0 && (supplies[id] ?? 0) > 0) {
         supplies[id] = (supplies[id] ?? 0) - 1;
-        u.inventory.push(id);
+        // The shop sells a 'noisemaker'; a merc carries a 'chattercan'. This is the
+        // translation that used to be missing, which is why bought ordnance never deployed.
+        u.inventory.push(weaponId);
         allowance--;
       }
     }

@@ -5,6 +5,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { ATTACHMENTS } from '@/data/attachments';
+import { CONSUMABLES } from '@/data/consumables';
 import { BARKS, BARK_SITUATIONS } from '@/data/barks';
 import { ENEMIES, HUMAN_ENEMY_IDS, ZOMBIE_IDS } from '@/data/enemies';
 import { FACTIONS } from '@/data/factions';
@@ -367,5 +368,36 @@ describe('spawning', () => {
     const b = spawnEnemy('raider', vec(1, 1), 2);
     expect(a.id).not.toBe(b.id);
     expect(a.spriteSeed).not.toBe(b.spriteSeed);
+  });
+});
+
+describe('consumables', () => {
+  it('translates every piece of ordnance into a real thrown weapon', () => {
+    for (const c of Object.values(CONSUMABLES)) {
+      if (!c.throwsAs) continue;
+      const w = ALL_WEAPONS[c.throwsAs];
+      expect(w, `${c.id} throws as missing ${c.throwsAs}`).toBeDefined();
+      expect(w?.cls, `${c.id} throws as a non-thrown weapon`).toBe('thrown');
+    }
+  });
+
+  it('names a real calibre for every ammunition type', () => {
+    const calibres = new Set(Object.values(ALL_WEAPONS).map((w) => w.ammo));
+    for (const c of Object.values(CONSUMABLES)) {
+      if (!c.ammo) continue;
+      expect(calibres.has(c.ammo as never), `${c.id} feeds unknown ${c.ammo}`).toBe(true);
+    }
+  });
+
+  it('prices everything above zero', () => {
+    for (const c of Object.values(CONSUMABLES)) {
+      expect(c.value, `${c.id}`).toBeGreaterThan(0);
+      expect(c.name.length, `${c.id}`).toBeGreaterThan(0);
+      expect(c.desc.length, `${c.id} has no description`).toBeGreaterThan(10);
+    }
+  });
+
+  it('keys match their ids', () => {
+    for (const [key, c] of Object.entries(CONSUMABLES)) expect(c.id).toBe(key);
   });
 });
