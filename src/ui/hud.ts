@@ -64,6 +64,7 @@ const MODE_LABEL: Record<ActionMode, string> = {
   fire: 'Fire',
   melee: 'Melee',
   medic: 'Medic',
+  throw: 'Throw',
 };
 
 const COVER_LABEL = ['None', 'Low', 'High'] as const;
@@ -555,21 +556,54 @@ export class Hud {
         {},
         this.modeGroup(u, w, usable),
         this.utilityGroup(u, w, usable),
+        this.throwGroup(usable),
         this.stanceGroup(u, usable),
         this.turnGroup(usable),
       ),
     );
   }
 
+  /** Which piece of ordnance is armed. Only meaningful in throw mode. */
+  private throwGroup(usable: boolean): HTMLElement | null {
+    if (this.ctrl.mode !== 'throw') return null;
+    const items = this.ctrl.availableThrowables;
+    if (items.length === 0) return null;
+
+    return el(
+      'div.act-group',
+      {},
+      el('div.stencil', {}, 'Ordnance'),
+      el(
+        'div.btn-row',
+        {},
+        ...items.map((it) =>
+          el(
+            'button.btn.btn--sm',
+            {
+              class: this.ctrl.throwItem === it.id ? 'is-active' : '',
+              disabled: !usable,
+              on: { click: () => { if (usable) this.ctrl.setThrowItem(it.id); } },
+            },
+            it.name,
+            el('span.ap-cost', {}, `x${it.count}`),
+          ),
+        ),
+      ),
+    );
+  }
+
   private modeGroup(u: Unit, w: ResolvedWeapon | null, usable: boolean): HTMLElement {
     const ranged = w !== null && w.def.cls !== 'melee';
+    const thrown = this.ctrl.throwInfo;
+    const hasThrowables = this.ctrl.availableThrowables.length > 0;
     const costs: Record<ActionMode, number | null> = {
       move: null,
       fire: ranged && w ? shotApCost(u, w, this.ctrl.plan) : null,
       melee: this.meleeCost(u, w),
       medic: 4,
+      throw: thrown ? thrown.cost : null,
     };
-    const modes: ActionMode[] = ['move', 'fire', 'melee', 'medic'];
+    const modes: ActionMode[] = ['move', 'fire', 'melee', 'medic', 'throw'];
 
     return el(
       'div.act-group',
@@ -579,7 +613,8 @@ export class Hud {
         'div.btn-row',
         {},
         ...modes.map((m) => {
-          const enabled = usable && (m !== 'fire' || ranged);
+          const enabled =
+            usable && (m !== 'fire' || ranged) && (m !== 'throw' || hasThrowables);
           const attrs: Record<string, unknown> = {
             class: this.ctrl.mode === m ? 'is-active' : '',
             disabled: !enabled,
@@ -587,6 +622,11 @@ export class Hud {
           };
           if (m === 'medic') attrs['title'] = 'Bandage an adjacent squadmate. 6 AP to stabilise a downed merc.';
           if (m === 'fire' && !ranged) attrs['title'] = 'No ranged weapon.';
+          if (m === 'throw') {
+            attrs['title'] = hasThrowables
+              ? `Lob ordnance at a tile. Reach ${thrown?.range ?? 0} tiles; explosives skill tightens the throw.`
+              : 'Nothing to throw.';
+          }
           return el(
             'button.btn',
             attrs,

@@ -94,6 +94,7 @@ export function deploy(opts: DeployOptions): Deployment {
   opts.squad.slice(0, spawns.length).forEach((state, i) => {
     const pos = spawns[i] ?? spawns[0]!;
     const u = spawnMerc(state, pos);
+    issueThrowables(u);
     b.units.push(u);
     squad.push(u);
   });
@@ -130,6 +131,22 @@ export function deploy(opts: DeployOptions): Deployment {
   b.rngState = rng.state;
   startBattle(b);
   return { battle: b, squad, sector: opts.sector };
+}
+
+/**
+ * Field issue of thrown ordnance. Scaled to the merc's explosives skill so Bricks deploys
+ * with a bag of charges and Sister Maggie deploys with a smoke pot she would rather not use.
+ * A noisemaker goes to everyone: it is the counterplay to the noise system, and a player who
+ * never finds it never learns the system exists.
+ */
+function issueThrowables(u: Unit): void {
+  const skill = u.attrs.explosives;
+  const kit: string[] = ['chattercan'];
+  if (skill >= 8) kit.push('frag', 'frag', 'pipebomb', 'molotov');
+  else if (skill >= 5) kit.push('frag', 'molotov');
+  else if (skill >= 3) kit.push('molotov');
+  else kit.push('smoke');
+  u.inventory.push(...kit);
 }
 
 function shuffled<T>(rng: Rng, arr: readonly T[]): T[] {

@@ -28,6 +28,7 @@ const ACTIONS: Binding[] = [
   { keys: ['2'], label: 'Fire mode', note: 'Opens aim and called-shot controls' },
   { keys: ['3'], label: 'Melee mode', note: 'Quiet. The dead will not hear it' },
   { keys: ['4'], label: 'Medic mode', note: 'Click a downed merc to stabilise them' },
+  { keys: ['G'], label: 'Throw mode', note: 'Frags, firebombs, smoke — and noisemakers' },
   { keys: ['R'], label: 'Reload' },
   { keys: ['O'], label: 'Overwatch', note: 'Bank AP to fire on the first enemy that moves' },
   { keys: ['Z', 'X', 'C'], label: 'Stand / Crouch / Prone' },
@@ -71,6 +72,14 @@ const RULES: Rule[] = [
       'is gone — flanking is not a bonus, it is the removal of a penalty. High cover cuts hit ' +
       'chance by 45%, low cover by 25%. Cover is also destructible: sustained fire will chew ' +
       'through it.',
+  },
+  {
+    title: 'A noisemaker is a weapon',
+    body:
+      'Everyone deploys with a wind-up alarm clock in a paint tin. Thrown down a street, it ' +
+      'becomes the loudest thing on the map, and every zombie that can hear it goes there ' +
+      'instead of coming here. Smoke breaks a firing line, a firebomb denies ground, and a ' +
+      'frag clears a room — but the can is the one that wins fights you could not win.',
   },
   {
     title: 'Down is not dead',

@@ -110,6 +110,7 @@ window.addEventListener('keydown', (e) => {
     case '2': c.setMode('fire'); break;
     case '3': c.setMode('melee'); break;
     case '4': c.setMode('medic'); break;
+    case 'g': c.setMode(c.mode === 'throw' ? 'move' : 'throw'); break;
     case 'r': c.doReload(); break;
     case 'o': c.doOverwatch(); break;
     case 'z': c.doStance('standing'); break;

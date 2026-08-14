@@ -22,6 +22,7 @@ import {
   unitById,
 } from '@/sim/battle';
 import { activeWeapon, estimateShot, MAX_AIM, type ShotPlan } from '@/sim/combat';
+import { throwables, throwApCost, throwAt, throwRange } from '@/sim/throwing';
 import { findPath, reachable, unitAt } from '@/sim/field';
 import {
   collectAt,
@@ -38,7 +39,7 @@ import { Fx } from '@/render/fx';
 import { Renderer, type RenderOverlays } from '@/render/renderer';
 import { EventPlayer, type PlaybackHooks } from './eventPlayer';
 
-export type ActionMode = 'move' | 'fire' | 'melee' | 'medic';
+export type ActionMode = 'move' | 'fire' | 'melee' | 'medic' | 'throw';
 
 export interface ControllerHooks extends PlaybackHooks {
   /** Called whenever anything the HUD displays may have changed. */
@@ -59,6 +60,8 @@ export class BattleController {
   hover: Vec2 | null = null;
   mode: ActionMode = 'move';
   plan: ShotPlan = { mode: 'single', aim: 0, part: 'torso' };
+  /** Which thrown item is armed, in throw mode. */
+  throwItem: string | null = null;
   showNoise = false;
   fogOfWar = true;
   /** Set while an enemy phase is resolving; input is locked. */
@@ -174,7 +177,35 @@ export class BattleController {
   setMode(mode: ActionMode): void {
     this.mode = mode;
     if (mode !== 'fire') this.plan = { mode: 'single', aim: 0, part: 'torso' };
+    // Arm the first thing they are carrying, so throw mode is never a dead end.
+    if (mode === 'throw' && !this.throwItem) {
+      this.throwItem = this.availableThrowables[0]?.id ?? null;
+    }
     this.invalidate();
+  }
+
+  /** Thrown items the selected merc is carrying. */
+  get availableThrowables(): { id: string; name: string; count: number }[] {
+    const u = this.selected;
+    return u ? throwables(u) : [];
+  }
+
+  setThrowItem(id: string): void {
+    this.throwItem = id;
+    this.hooks.onDirty();
+  }
+
+  /** AP and reach for the armed item, for the HUD. */
+  get throwInfo(): { cost: number; range: number; name: string } | null {
+    const u = this.selected;
+    if (!u || !this.throwItem) return null;
+    const entry = this.availableThrowables.find((t) => t.id === this.throwItem);
+    if (!entry) return null;
+    return {
+      cost: throwApCost(u, this.throwItem),
+      range: throwRange(u, this.throwItem),
+      name: entry.name,
+    };
   }
 
   setAim(aim: number): void {
@@ -240,6 +271,23 @@ export class BattleController {
           result = bandage(this.battle, u, target, sink);
         }
         break;
+
+      case 'throw': {
+        if (!this.throwItem) {
+          result = { ok: false, reason: 'Nothing to throw' };
+          break;
+        }
+        const out = throwAt(this.battle, u, tile, this.throwItem, sink);
+        result = out.ok ? { ok: true } : { ok: false, ...(out.reason ? { reason: out.reason } : {}) };
+        if (out.ok) {
+          if (out.scattered) this.hooks.logLine('The throw went wide.', 'bad');
+          // Drop the item once the last one is gone rather than leaving a dead selection.
+          if (!this.availableThrowables.some((t) => t.id === this.throwItem)) {
+            this.throwItem = this.availableThrowables[0]?.id ?? null;
+          }
+        }
+        break;
+      }
     }
 
     this.resolve(sink, result.reason);
