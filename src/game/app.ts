@@ -57,6 +57,13 @@ import '@/ui/campaign.css';
 
 const SAVE_KEY = 'lc.save.v1';
 
+/** Collapse duplicates into [id, count] pairs so three identical fittings read as one card. */
+function countBy(ids: readonly string[]): [string, number][] {
+  const n = new Map<string, number>();
+  for (const id of ids) n.set(id, (n.get(id) ?? 0) + 1);
+  return [...n.entries()];
+}
+
 /** Snapshot of a merc taken at deployment, so the report can show what the fight cost. */
 interface Baseline {
   xp: number;
@@ -323,6 +330,18 @@ export class App {
     // Deaths are permanent, and the campaign needs to know before the payout is computed.
     for (const id of casualties) mercDied(this.campaign, id);
 
+    // Everything the squad carried off the field goes into the company stash.
+    const rec = ctrl.recovered;
+    for (const w of rec.weapons) this.campaign.stash.weapons.push(w);
+    for (const a of rec.attachments) this.campaign.stash.attachments.push(a);
+    for (const [k, v] of Object.entries(rec.materials)) {
+      if (v && v > 0) {
+        const key = k as keyof typeof this.campaign.materials;
+        this.campaign.materials[key] = (this.campaign.materials[key] ?? 0) + v;
+      }
+    }
+    this.campaign.cash += rec.cash;
+
     const contract = this.activeContract;
     const cashBefore = this.campaign.cash;
     const repBefore = { ...this.campaign.reputation };
@@ -343,9 +362,17 @@ export class App {
       outcome,
       turns: b.turn,
       mercs,
-      cash: this.campaign.cash - cashBefore,
-      loot: [],
-      materials: {},
+      cash: this.campaign.cash - cashBefore + rec.cash,
+      // The card shows wear and fittings when it is handed the real instance.
+      loot: [
+        ...rec.weapons.map((w) => ({ kind: 'weapon' as const, id: w.defId, weapon: w })),
+        ...countBy(rec.attachments).map(([id, qty]) => ({
+          kind: 'attachment' as const,
+          id,
+          qty,
+        })),
+      ],
+      materials: rec.materials,
       repChanges,
       mercOfTheMatch: best?.id ?? null,
       ...(casualties.length > 0 ? { casualties } : {}),

@@ -7,6 +7,7 @@
  */
 import { chebyshev, type Vec2 } from '@/core/grid';
 import { EventSink } from '@/sim/events';
+import { takeAiAction } from '@/sim/ai';
 import {
   advancePhase,
   bandage,
@@ -20,9 +21,17 @@ import {
   shoot,
   unitById,
 } from '@/sim/battle';
-import { takeAiAction } from '@/sim/ai';
 import { activeWeapon, estimateShot, MAX_AIM, type ShotPlan } from '@/sim/combat';
 import { findPath, reachable, unitAt } from '@/sim/field';
+import {
+  collectAt,
+  describeDrop,
+  dropLootFor,
+  dropRarity,
+  emptyRecovered,
+  type Recovered,
+} from '@/sim/loot';
+import type { CombatEvent } from '@/sim/events';
 import type { BattleState, BodyPart, FireMode, Stance, Unit } from '@/sim/types';
 import { Camera } from '@/render/camera';
 import { Fx } from '@/render/fx';
@@ -54,6 +63,9 @@ export class BattleController {
   fogOfWar = true;
   /** Set while an enemy phase is resolving; input is locked. */
   busy = false;
+
+  /** Everything the squad has picked up this battle, handed to the campaign at the end. */
+  readonly recovered: Recovered = emptyRecovered();
 
   private reachCache: { unitId: string; ap: number; tiles: Map<number, number> } | null = null;
   private pathCache: { key: string; tiles: Vec2[] } | null = null;
@@ -328,7 +340,9 @@ export class BattleController {
 
     const sink = new EventSink();
     takeAiAction(this.battle, u, sink);
-    this.player.play(this.battle, sink.drain());
+    const events = sink.drain();
+    this.player.play(this.battle, events);
+    this.settleLoot(events);
     // Follow the action so off-screen shots are not a mystery.
     if (this.fogOfWar) this.camera.centerOn(u.pos);
     this.invalidate();
@@ -336,10 +350,34 @@ export class BattleController {
 
   // ─────────────────────────────────────────────── loop
 
+  /**
+   * Bodies drop what they were carrying, and any squad member standing on a pile takes it.
+   * Handled here rather than inside combat resolution so the loot tables never have to be
+   * reachable from the shot resolver.
+   */
+  private settleLoot(events: readonly CombatEvent[]): void {
+    for (const e of events) {
+      if (e.t !== 'kill') continue;
+      const victim = unitById(this.battle, e.unitId);
+      if (victim && victim.team !== 'player') dropLootFor(this.battle, victim);
+    }
+
+    for (const u of this.battle.units) {
+      if (!u.alive || u.critical || u.team !== 'player') continue;
+      const drop = collectAt(this.battle, u.pos, this.recovered);
+      if (!drop) continue;
+      this.hooks.logLine(`${u.name} recovered ${describeDrop(drop)}.`, 'good');
+      this.player.play(this.battle, [
+        { t: 'loot', at: u.pos, rarity: dropRarity(drop), label: describeDrop(drop) },
+      ]);
+    }
+  }
+
   private resolve(sink: EventSink, failReason?: string): void {
     const events = sink.drain();
     if (events.length > 0) {
       this.player.play(this.battle, events);
+      this.settleLoot(events);
       const outSink = new EventSink();
       checkOutcome(this.battle, outSink);
       this.player.play(this.battle, outSink.drain());
