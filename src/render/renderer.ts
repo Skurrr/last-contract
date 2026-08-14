@@ -53,6 +53,8 @@ export interface RenderOverlays {
   selectedId?: string | null;
   /** Unit under the cursor, highlighted as a target. */
   targetId?: string | null;
+  /** Tiles a throw can reach, drawn as a distinct band from the movement overlay. */
+  throwTiles?: Set<number>;
   /** Draw the noise field — genuinely useful, since noise is what the dead follow. */
   showNoise?: boolean;
   /** Hide tiles no living squad member can see. */
@@ -235,6 +237,34 @@ export class Renderer {
           : `rgba(95,211,232,${pulse.toFixed(3)})`;
         ctx.fillRect(x * TS, y * TS, TS, TS);
       }
+    }
+
+    if (ov.throwTiles && ov.throwTiles.size > 0) {
+      // Amber, and distinct from the cyan movement band — reach is not the same as range.
+      // A faint fill alone was unreadable against the map, so the boundary is drawn as a
+      // hard edge: the player needs to see exactly where their arm stops.
+      const pulse = 0.11 + 0.04 * Math.sin(this.time * 3.4);
+      ctx.fillStyle = `rgba(232,163,61,${pulse.toFixed(3)})`;
+      let x0 = Infinity;
+      let y0 = Infinity;
+      let x1 = -Infinity;
+      let y1 = -Infinity;
+      for (const k of ov.throwTiles) {
+        const x = k & 1023;
+        const y = k >> 10;
+        ctx.fillRect(x * TS, y * TS, TS, TS);
+        if (x < x0) x0 = x;
+        if (y < y0) y0 = y;
+        if (x > x1) x1 = x;
+        if (y > y1) y1 = y;
+      }
+      ctx.save();
+      ctx.strokeStyle = 'rgba(232,163,61,0.75)';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([8, 6]);
+      ctx.lineDashOffset = -this.time * 18;
+      ctx.strokeRect(x0 * TS + 1, y0 * TS + 1, (x1 - x0 + 1) * TS - 2, (y1 - y0 + 1) * TS - 2);
+      ctx.restore();
     }
 
     if (ov.path && ov.path.length > 0) {

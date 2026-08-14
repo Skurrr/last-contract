@@ -50,12 +50,23 @@ fire the first shot.
 
 They have salaries, morale, opinions about each other, and they die permanently.
 
+### Ordnance that changes the fight
+Everyone deploys with a wind-up alarm clock in a paint tin. Thrown down a street it becomes
+the loudest thing on the map, and every zombie that can hear it goes there instead of coming
+here. Smoke breaks a firing line, a firebomb denies ground and sets people alight, a frag
+clears a room. Throwing is not the shooting model — you are lobbing a heavy object, so a miss
+scatters rather than simply failing, and explosives skill tightens the group.
+
+![The world map](docs/img/worldmap.png)
+
 ### Depth to build into
 - **93 perks** across five gated trees, **36 traits** (positive cost points, negative refund them)
 - **38 weapons** from mil-surplus to pipe guns, **46 attachments** across six slots
 - Weapon **crafting** from eight material types — known recipes, or improvised builds whose
   quality scales with your mechanic's skill
 - 20 levels, XP for damage, kills, called shots, healing, and learning by doing
+- Bodies drop what they were carrying — a Remnant marksman leaves mil-spec gear, a shambler
+  leaves whatever was in its pockets eight years ago
 
 ### A war to take sides in
 An 8×6 sector map whose geography *is* the politics — the Rust Kings hold the highway spine
@@ -79,15 +90,18 @@ audibly a thud, an armour hit rings metallic.
 ```bash
 npm install
 npm run dev        # play at localhost:5173
-npm test           # 140 simulation and content-integrity tests
+npm test           # 177 simulation, content-integrity and replay tests
 npm run typecheck
 npx vite build
 
 # Play hundreds of battles headlessly and report the balance curve
 npx tsx scripts/balance.mjs 40
 
-# Boot the built game in a real browser and play through it
+# Boot the built game in a real browser and play a battle
 npx vite preview & node scripts/smoke.mjs .scratch/shots
+
+# Play the whole loop: menu, contract, deployment, firefight, report, save, reload
+node scripts/loop.mjs .scratch/loop
 ```
 
 ## Architecture

@@ -195,6 +195,22 @@ export class BattleController {
     this.hooks.onDirty();
   }
 
+  /** Tiles the armed throw can reach, for the overlay. */
+  get throwTiles(): Set<number> | undefined {
+    const u = this.selected;
+    if (!u || this.mode !== 'throw' || !this.throwItem || !this.canAct) return undefined;
+    const r = throwRange(u, this.throwItem);
+    const out = new Set<number>();
+    for (let y = u.pos.y - r; y <= u.pos.y + r; y++) {
+      for (let x = u.pos.x - r; x <= u.pos.x + r; x++) {
+        if (x < 0 || y < 0 || x >= this.battle.w || y >= this.battle.h) continue;
+        if (chebyshev(u.pos, { x, y }) > r) continue;
+        out.add((y << 10) | x);
+      }
+    }
+    return out;
+  }
+
   /** AP and reach for the armed item, for the HUD. */
   get throwInfo(): { cost: number; range: number; name: string } | null {
     const u = this.selected;
@@ -482,6 +498,8 @@ export class BattleController {
     if (path) overlays.path = path;
     const hovered = this.hoveredUnit;
     if (hovered && u && hovered.team !== u.team) overlays.targetId = hovered.id;
+    const throwTiles = this.throwTiles;
+    if (throwTiles) overlays.throwTiles = throwTiles;
 
     this.renderer.draw(this.battle, overlays);
   }
