@@ -8,31 +8,28 @@
  *
  * Usage: node scripts/smoke.mjs [outputDir]
  */
-import { chromium } from 'playwright-core';
 import { mkdirSync } from 'node:fs';
+import { boot, enterBattle, launch } from './lib/harness.mjs';
 
 const OUT = process.argv[2] ?? '.scratch/shots';
 const URL = process.env.SMOKE_URL ?? 'http://localhost:4173/last-contract/';
 
 mkdirSync(OUT, { recursive: true });
 
-const browser = await chromium.launch({
-  executablePath: process.env.CHROME_PATH || undefined,
-  args: ['--no-sandbox', '--disable-gpu', '--enable-unsafe-swiftshader'],
-});
-const page = await browser.newPage({ viewport: { width: 1600, height: 900 } });
-
-const errors = [];
+const { browser, page, errors } = await launch();
 const warnings = [];
-page.on('console', (m) => {
-  if (m.type() === 'error') errors.push(m.text());
-  if (m.type() === 'warning') warnings.push(m.text());
-});
-page.on('pageerror', (e) => errors.push(`PAGEERROR: ${e.message}\n${e.stack ?? ''}`));
 
 console.log(`→ loading ${URL}`);
-await page.goto(URL, { waitUntil: 'networkidle', timeout: 30000 });
-await page.waitForTimeout(1200);
+await boot(page, URL);
+
+// The game opens on the main menu now, so get into a real firefight before testing one.
+const started = await enterBattle(page);
+if (!started) {
+  console.log('✗ could not reach a battle from the menu');
+  await page.screenshot({ path: `${OUT}/00-stuck.png` });
+  await browser.close();
+  process.exit(1);
+}
 
 // The canvas must actually have painted something other than the clear colour.
 const painted = await page.evaluate(() => {

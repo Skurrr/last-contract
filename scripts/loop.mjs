@@ -8,24 +8,15 @@
  *
  * Usage: node scripts/loop.mjs [outputDir]
  */
-import { chromium } from 'playwright-core';
 import { mkdirSync } from 'node:fs';
+import { battleOver, boot, launch, playerTurn } from './lib/harness.mjs';
 
 const OUT = process.argv[2] ?? '.scratch/loop';
 const URL = process.env.SMOKE_URL ?? 'http://localhost:4173/last-contract/';
 
 mkdirSync(OUT, { recursive: true });
 
-const browser = await chromium.launch({
-  args: ['--no-sandbox', '--disable-gpu', '--enable-unsafe-swiftshader'],
-});
-const page = await browser.newPage({ viewport: { width: 1600, height: 900 } });
-
-const errors = [];
-page.on('console', (m) => {
-  if (m.type() === 'error' && !m.text().includes('favicon')) errors.push(m.text());
-});
-page.on('pageerror', (e) => errors.push(`PAGEERROR: ${e.message}\n${(e.stack ?? '').slice(0, 400)}`));
+const { browser, page, errors } = await launch();
 
 const steps = [];
 const step = (name, ok, detail = '') => {
@@ -50,12 +41,7 @@ async function clickText(texts, within = 'body') {
 }
 
 console.log(`→ ${URL}\n`);
-await page.goto(URL, { waitUntil: 'networkidle', timeout: 30000 });
-await page.waitForTimeout(900);
-
-// The field manual opens on first run; dismiss it.
-await page.keyboard.press('Escape');
-await page.waitForTimeout(300);
+await boot(page, URL);
 await shot('01-menu');
 step('menu renders', (await page.locator('.menu').count()) > 0);
 
@@ -131,13 +117,8 @@ if (deployable) {
   if (inBattle) {
     // Play it out. Enter only does anything during the player phase — the AI phases lock
     // input while they resolve, so wait for the turn to come back before pressing again.
-    const isOver = () =>
-      page.evaluate(() => Boolean(document.querySelector('.aar-continue')));
-    const myTurn = () =>
-      page.evaluate(() => {
-        const banner = document.querySelector('.hud-banner')?.textContent ?? '';
-        return /YOUR MOVE/i.test(banner);
-      });
+    const isOver = () => battleOver(page);
+    const myTurn = () => playerTurn(page);
 
     for (let t = 0; t < 60; t++) {
       if (await isOver()) break;
