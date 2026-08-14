@@ -43,10 +43,17 @@ jobs:
           npx wait-on http://localhost:4173/last-contract/ --timeout 60000
           node scripts/smoke.mjs .scratch/ci-shots
 
+      # The tactical smoke run only proves a battle boots. This proves the whole game
+      # hands off correctly: menu, contract, deployment, firefight, report, save, reload.
+      - name: Full-loop run
+        run: node scripts/loop.mjs .scratch/ci-loop
+
       - name: Upload screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: smoke-screenshots
-          path: .scratch/ci-shots
+          path: |
+            .scratch/ci-shots
+            .scratch/ci-loop
           if-no-files-found: ignore
