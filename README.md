@@ -60,7 +60,7 @@ scatters rather than simply failing, and explosives skill tightens the group.
 ![The world map](docs/img/worldmap.png)
 
 ### Depth to build into
-- **93 perks** across five gated trees, **36 traits** (positive cost points, negative refund them)
+- **127 perks** across five gated trees, **36 traits** (positive cost points, negative refund them)
 - **38 weapons** from mil-surplus to pipe guns, **46 attachments** across six slots
 - Weapon **crafting** from eight material types — known recipes, or improvised builds whose
   quality scales with your mechanic's skill
