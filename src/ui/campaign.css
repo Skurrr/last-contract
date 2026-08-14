@@ -1931,9 +1931,20 @@
   min-width: 0;
 }
 
-/* The squad list gets the slack; the loot grid only ever takes what it needs. */
-.aar-col--main > .aar-xp { flex: 1 1 auto; }
+/* The squad list gets the slack; the loot grid only ever takes what it needs.
+   `flex-grow` is capped by `max-content` so a one-merc report does not stretch a nearly
+   empty panel down the whole page — with a full six-merc squad it still fills the column. */
+.aar-col--main > .aar-xp {
+  flex: 0 1 auto;
+  max-height: max-content;
+}
 .aar-col--main > .aar-lootpanel { flex: 0 1 auto; max-height: 52%; }
+/* Push any leftover height into dead space at the bottom rather than into a panel. */
+.aar-col--main::after {
+  content: '';
+  flex: 1 1 auto;
+  min-height: 0;
+}
 
 .aar-xp,
 .aar-lootpanel,
@@ -2162,4 +2173,64 @@
     grid-auto-rows: minmax(240px, auto);
     overflow-y: auto;
   }
+}
+
+/* ── main menu ───────────────────────────────────────────────────────────
+   The first screen. Deliberately spare: a title, a sentence that tells you
+   what kind of game this is, and three ways in. */
+
+.screen-root {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+}
+
+.menu {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s5, 16px);
+  padding: var(--s6, 24px);
+  text-align: center;
+  background:
+    radial-gradient(ellipse at 50% 35%, rgba(74, 85, 53, 0.18), transparent 62%),
+    var(--bg, #0d100c);
+}
+
+.menu-title h1 {
+  margin: 0;
+  font-size: clamp(40px, 8vw, 84px);
+  letter-spacing: 0.2em;
+  color: var(--amber, #e8a33d);
+  text-shadow: 0 3px 0 rgba(0, 0, 0, 0.55);
+}
+
+.menu-blurb {
+  max-width: 60ch;
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--text-dim, #9a9a8e);
+}
+
+.menu-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3, 8px);
+  min-width: 260px;
+  margin-top: var(--s4, 12px);
+}
+
+.menu-actions .btn {
+  padding: 10px 18px;
+  font-size: 14px;
+  letter-spacing: 0.12em;
+}
+
+.menu-foot {
+  margin-top: var(--s5, 16px);
+  font-size: 11px;
+  color: var(--text-dim, #8d8b7e);
 }

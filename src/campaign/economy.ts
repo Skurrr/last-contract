@@ -21,7 +21,7 @@ import { TRAITS } from '@/data/traits';
 import { WEAPONS } from '@/data/weapons';
 import { makeWeapon, type MercState } from '@/sim/spawn';
 import { aggregate, type Mods } from '@/sim/progression';
-import type { MaterialId, Materials, WeaponInstance } from '@/sim/types';
+import type { AttachmentSlot, MaterialId, Materials, WeaponInstance } from '@/sim/types';
 import {
   FAIL,
   OK,
@@ -297,6 +297,31 @@ function logTrade(c: CampaignState, text: string): void {
 
 // ─────────────────────────────────────────────────────────────── the bench
 
+/**
+ * What breaking a weapon down would return, without doing it. Exported so the workshop can
+ * show the yield before the player commits — previously the UI reimplemented this formula,
+ * which is a guarantee the two will disagree eventually.
+ */
+export function scrapYieldFor(
+  c: CampaignState,
+  weaponUid: string,
+  mercId?: string,
+): Materials | null {
+  const w = c.stash.weapons.find((x) => x.uid === weaponUid);
+  const def = w ? WEAPONS[w.defId] : undefined;
+  if (!w || !def) return null;
+
+  const skill = (mercId ? findMerc(c, mercId) : undefined)?.attrs.mechanical ?? 3;
+  // Condition matters: a wreck yields less than a working gun.
+  const mul = (0.7 + skill * 0.05) * (0.55 + (w.condition / 100) * 0.45);
+
+  const out: Materials = {};
+  for (const [k, v] of Object.entries(SCRAP_YIELD[def.rarity]) as [MaterialId, number][]) {
+    out[k] = Math.max(1, Math.round(v * mul));
+  }
+  return out;
+}
+
 /** Break a stashed weapon down for parts. A good mechanic gets more out of it. */
 export function scrapWeapon(c: CampaignState, weaponUid: string, mercId?: string): ActionResult {
   const idx = c.stash.weapons.findIndex((w) => w.uid === weaponUid);
@@ -305,16 +330,9 @@ export function scrapWeapon(c: CampaignState, weaponUid: string, mercId?: string
   const def = WEAPONS[w.defId];
   if (!def) return FAIL('unknown weapon');
 
-  const merc = mercId ? findMerc(c, mercId) : undefined;
-  const skill = merc?.attrs.mechanical ?? 3;
-  // Condition matters: a wreck yields less than a working gun.
-  const mul = (0.7 + skill * 0.05) * (0.55 + (w.condition / 100) * 0.45);
+  const yieldOut = scrapYieldFor(c, weaponUid, mercId);
+  if (!yieldOut) return FAIL('unknown weapon');
 
-  const yieldOut: Materials = {};
-  for (const [k, v] of Object.entries(SCRAP_YIELD[def.rarity]) as [MaterialId, number][]) {
-    const n = Math.max(1, Math.round(v * mul));
-    yieldOut[k] = n;
-  }
   c.stash.weapons.splice(idx, 1);
   // Fitted attachments come off the gun and stay in the stash.
   for (const attId of Object.values(w.attachments)) {
@@ -330,6 +348,31 @@ export function scrapWeapon(c: CampaignState, weaponUid: string, mercId?: string
   return OK;
 }
 
+/**
+ * Parts a repair would consume and the condition it would restore to, without doing it.
+ * Exported for the same reason as `scrapYieldFor`: the workshop needs to show the price.
+ */
+export function repairCostFor(
+  c: CampaignState,
+  weaponUid: string,
+  mercId: string,
+): { cost: Materials; restoredTo: number } | null {
+  const w = c.stash.weapons.find((x) => x.uid === weaponUid) ?? weaponOfMerc(c, weaponUid);
+  const merc = findMerc(c, mercId);
+  if (!w || !merc) return null;
+
+  const mods = mercMods(merc);
+  const missing = 100 - w.condition;
+  return {
+    cost: {
+      scrap: Math.max(1, Math.ceil((missing / 12) * mods.repairMul)),
+      springs: Math.max(1, Math.ceil((missing / 30) * mods.repairMul)),
+      tape: Math.max(1, Math.ceil((missing / 25) * mods.repairMul)),
+    },
+    restoredTo: clamp(w.condition + clamp(20 + merc.attrs.mechanical * 6, 20, 100), 0, 100),
+  };
+}
+
 /** Restore condition with parts and a mechanic. Instant — the cost is materials, not days. */
 export function repairWeapon(c: CampaignState, weaponUid: string, mercId: string): ActionResult {
   const w = c.stash.weapons.find((x) => x.uid === weaponUid) ?? weaponOfMerc(c, weaponUid);
@@ -340,14 +383,9 @@ export function repairWeapon(c: CampaignState, weaponUid: string, mercId: string
   if (!merc) return FAIL('no such merc');
   if (isBusy(c, mercId)) return FAIL(`${label(merc)} is at the bench already`);
 
-  const mods = mercMods(merc);
-  const missing = 100 - w.condition;
-  const cost: Materials = {
-    scrap: Math.max(1, Math.ceil((missing / 12) * mods.repairMul)),
-    springs: Math.max(1, Math.ceil((missing / 30) * mods.repairMul)),
-    tape: Math.max(1, Math.ceil((missing / 25) * mods.repairMul)),
-  };
-  if (!takeMaterials(c.materials, cost)) return FAIL('not enough parts');
+  const quote = repairCostFor(c, weaponUid, mercId);
+  if (!quote) return FAIL('no such weapon');
+  if (!takeMaterials(c.materials, quote.cost)) return FAIL('not enough parts');
 
   const restored = clamp(20 + merc.attrs.mechanical * 6, 20, 100);
   w.condition = clamp(w.condition + restored, 0, 100);
@@ -356,6 +394,52 @@ export function repairWeapon(c: CampaignState, weaponUid: string, mercId: string
     hour: c.hour,
     text: `${label(merc)} brought ${WEAPONS[w.defId]?.name ?? w.defId} back to ${w.condition}%.`,
     tone: 'good',
+  });
+  return OK;
+}
+
+/**
+ * Fit or remove an attachment. Pass `null` to strip the slot. Anything displaced goes back
+ * to the stash rather than evaporating — a player who swaps optics twice should still own
+ * both of them.
+ */
+export function fitAttachment(
+  c: CampaignState,
+  weaponUid: string,
+  slot: AttachmentSlot,
+  attachmentId: string | null,
+): ActionResult {
+  const w = c.stash.weapons.find((x) => x.uid === weaponUid) ?? weaponOfMerc(c, weaponUid);
+  if (!w) return FAIL('no such weapon');
+  const def = WEAPONS[w.defId];
+  if (!def) return FAIL('unknown weapon');
+  if (!def.slots.includes(slot)) return FAIL(`no ${slot} slot on a ${def.name}`);
+
+  if (attachmentId !== null) {
+    const att = ATTACHMENTS[attachmentId];
+    if (!att) return FAIL('no such attachment');
+    if (att.slot !== slot) return FAIL(`${att.name} is not a ${slot} fitting`);
+    if (att.fits.length > 0 && !att.fits.includes(def.cls)) {
+      return FAIL(`${att.name} does not fit a ${def.cls}`);
+    }
+    const held = c.stash.attachments.indexOf(attachmentId);
+    if (held < 0) return FAIL(`no ${att.name} in the stash`);
+    c.stash.attachments.splice(held, 1);
+  }
+
+  const displaced = w.attachments[slot];
+  if (displaced) c.stash.attachments.push(displaced);
+
+  if (attachmentId === null) delete w.attachments[slot];
+  else w.attachments[slot] = attachmentId;
+
+  c.log.push({
+    day: c.day,
+    hour: c.hour,
+    text: attachmentId
+      ? `Fitted ${ATTACHMENTS[attachmentId]?.name ?? attachmentId} to ${def.name}.`
+      : `Stripped the ${slot} fitting off ${def.name}.`,
+    tone: 'info',
   });
   return OK;
 }

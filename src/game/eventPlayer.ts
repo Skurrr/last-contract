@@ -33,6 +33,11 @@ export interface PlaybackHooks {
   /** A merc levelled — the UI should queue the perk-choice card deal. */
   onLevelUp: (unitId: string, level: number) => void;
   onOutcome: (outcome: 'victory' | 'defeat') => void;
+  /**
+   * Every event, raw, before presentation. The after-action report tallies per-merc
+   * contribution from here — the simulation is the only thing that knows who dealt what.
+   */
+  onEvent?: (e: CombatEvent) => void;
 }
 
 export class EventPlayer {
@@ -61,7 +66,10 @@ export class EventPlayer {
   }
 
   play(b: BattleState, events: readonly CombatEvent[]): void {
-    for (const e of events) this.one(b, e);
+    for (const e of events) {
+      this.hooks.onEvent?.(e);
+      this.one(b, e);
+    }
   }
 
   private one(b: BattleState, e: CombatEvent): void {
