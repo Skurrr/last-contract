@@ -261,14 +261,62 @@ their `spriteSeed`, so each is visually unique and consistent everywhere they ap
 
 ## 9. Scope of "done" for v1.0
 
-- [ ] 8×6 sector campaign, 5 factions, reputation and alliance/war states
-- [ ] Full tactical layer: AP, stances, cover, LOS, body-part targeting, interrupts, noise
-- [ ] 13 hand-written mercs with barks, quirks, and relationships
-- [ ] ~60 perks, ~24 traits
-- [ ] ~30 weapons, ~40 attachments, crafting with recipes + improvisation
-- [ ] Health / stamina / XP / levels / character sheet
-- [ ] Procedural art forge covering units, weapons, tiles, UI
-- [ ] Full juice pass
-- [ ] Save/load
-- [ ] Test suite over the deterministic sim core
-- [ ] Published and playable in a browser
+- [x] 8×6 sector campaign, 5 factions, reputation and alliance/war states
+- [x] Full tactical layer: AP, stances, cover, LOS, body-part targeting, interrupts, noise
+- [x] 13 hand-written mercs with barks, quirks, and relationships
+- [x] Perks and traits at Project Zomboid density (127 perks, 36 traits — see §10)
+- [x] 38 weapons, 46 attachments, crafting with recipes + improvisation
+- [x] Health / stamina / XP / levels / character sheet
+- [x] Procedural art forge covering units, weapons, tiles, UI
+- [x] Full juice pass, plus procedural audio
+- [x] Save/load
+- [x] Test suite over the deterministic sim core (179 tests)
+- [x] Published and playable in a browser
+
+---
+
+## 10. Where it actually landed
+
+Numbers that moved from the original plan, and why.
+
+| Planned | Shipped | Why |
+|---|---|---|
+| ~60 perks | **127** (84 at tier 1) | A career deals 57 cards. At 63 perks only ~33 distinct ones were ever offered, and Grandma Vy qualified for 11 at level 2. 84 tier-1 perks is roughly the floor that gets every merc past 45 distinct across a career. |
+| ~24 traits | **36** | Several character-defining traits had no mechanical existence — Maggie's pacifism, Sable's silence, Padre's protection from the Ash Order. |
+| ~30 weapons | **38** | Improvised tier needed real breadth to make crafting worth doing. |
+| 15–30% cover adjacency | **46–75%, banded per biome** | Arithmetically unreachable as specified: ~12% prop coverage arranged in *readable* clusters necessarily puts 45%+ of walkable tiles next to something. Prop coverage and mean sightline govern instead. |
+
+### Measured balance
+
+`npx tsx scripts/balance.mjs 30` over 150 battles:
+
+| threat | win | timeout | turns | accuracy | merc deaths | squad HP left |
+|---|---|---|---|---|---|---|
+| 1 | 100% | 0% | 8 | 55% | 0.00 | 99% |
+| 2 | 100% | 0% | 10 | 52% | 0.60 | 84% |
+| 3 | 97% | 0% | 12 | 53% | 0.63 | 84% |
+| 4 | 67% | 0% | 13 | 52% | 2.97 | 41% |
+| 5 | 50% | 0% | 15 | 53% | 3.40 | 30% |
+
+Accuracy holding near 52% across all tiers is the signal that cover and range are doing
+the work rather than raw statlines.
+
+---
+
+## 11. Known gaps
+
+Honest list of what is not finished.
+
+- **No consumables catalogue.** `src/data/consumables.ts` does not exist. The market carries a
+  display-only table of 19 ids so it can name and price them, and thrown ordnance is wired end
+  to end, but medical items are priced without being usable in the field. Bandaging works as a
+  free medic action rather than consuming a medkit.
+- **Ally faction units never deploy.** The `ally` team is fully supported by the simulation and
+  an alliance is reachable, but no contract currently spawns friendly fighters alongside you.
+- **No campaign victory condition.** `gameOver` supports `'victory'`; nothing sets it. The
+  campaign runs until bankruptcy or a squad wipe.
+- **Objectives beyond `eliminate` are under-used.** `reach`, `survive`, `protect` and `retrieve`
+  all resolve correctly and are covered by tests, but contract generation mostly issues
+  eliminate objectives.
+- **AI does not throw.** Ordnance is a player-only tool; enemy humans never use grenades.
+- **No difficulty setting.** Threat level is the only lever.
