@@ -24,6 +24,12 @@ export interface DeployOptions {
   opposition?: string | null;
   /** Extra pressure from the campaign's horde clock, 0..1. */
   hordePressure?: number;
+  /**
+   * Consumables the company actually holds, by id. Ordnance is drawn from here first so a
+   * player who buys grenades deploys with them; mutated in place so the caller knows what
+   * left the stash.
+   */
+  supplies?: Record<string, number>;
   objectives?: Objective[];
   light?: number;
 }
@@ -94,7 +100,7 @@ export function deploy(opts: DeployOptions): Deployment {
   opts.squad.slice(0, spawns.length).forEach((state, i) => {
     const pos = spawns[i] ?? spawns[0]!;
     const u = spawnMerc(state, pos);
-    issueThrowables(u);
+    issueThrowables(u, opts.supplies);
     b.units.push(u);
     squad.push(u);
   });
@@ -133,16 +139,37 @@ export function deploy(opts: DeployOptions): Deployment {
   return { battle: b, squad, sector: opts.sector };
 }
 
+/** Every thrown item the catalogue knows about, best first. */
+const ORDNANCE_PRIORITY = ['frag', 'pipebomb', 'molotov', 'smoke', 'chattercan'] as const;
+
 /**
- * Field issue of thrown ordnance. Scaled to the merc's explosives skill so Bricks deploys
- * with a bag of charges and Sister Maggie deploys with a smoke pot she would rather not use.
- * A noisemaker goes to everyone: it is the counterplay to the noise system, and a player who
- * never finds it never learns the system exists.
+ * Field issue of thrown ordnance.
+ *
+ * Anything the company has bought is handed out first, best to the merc most able to use it —
+ * otherwise grenades sit in the stash forever and buying them does nothing. On top of that
+ * every merc gets a standard issue scaled to their explosives skill, so Bricks deploys with a
+ * bag of charges and Sister Maggie deploys with a smoke pot she would rather not use.
+ *
+ * A noisemaker always goes to everyone: it is the counterplay to the noise system, and a
+ * player who never finds one never learns the system exists.
  */
-function issueThrowables(u: Unit): void {
+function issueThrowables(u: Unit, supplies?: Record<string, number>): void {
   const skill = u.attrs.explosives;
+
+  // Draw from the stash: a demolitions merc takes up to three, everyone else up to one.
+  let allowance = skill >= 8 ? 3 : skill >= 5 ? 2 : 1;
+  if (supplies) {
+    for (const id of ORDNANCE_PRIORITY) {
+      while (allowance > 0 && (supplies[id] ?? 0) > 0) {
+        supplies[id] = (supplies[id] ?? 0) - 1;
+        u.inventory.push(id);
+        allowance--;
+      }
+    }
+  }
+
   const kit: string[] = ['chattercan'];
-  if (skill >= 8) kit.push('frag', 'frag', 'pipebomb', 'molotov');
+  if (skill >= 8) kit.push('frag', 'pipebomb', 'molotov');
   else if (skill >= 5) kit.push('frag', 'molotov');
   else if (skill >= 3) kit.push('molotov');
   else kit.push('smoke');

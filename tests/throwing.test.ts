@@ -166,3 +166,43 @@ describe('throwing', () => {
     expect(run()).toBe(run());
   });
 });
+
+describe('field issue', () => {
+  it('hands out bought ordnance and spends it from the stash', async () => {
+    const { deploy } = await import('@/game/deploy');
+    const { createMercState } = await import('@/sim/spawn');
+    const { SECTORS } = await import('@/data/sectors');
+
+    const supplies: Record<string, number> = { frag: 4 };
+    const dep = deploy({
+      seed: 4242,
+      sector: SECTORS[0]!,
+      squad: ['bricks', 'nine'].map((id) => createMercState(id)),
+      supplies,
+    });
+
+    const carried = dep.squad.reduce(
+      (n, u) => n + u.inventory.filter((i) => i === 'frag').length,
+      0,
+    );
+    // Bricks takes up to three, Nine up to one, so all four leave the stash.
+    expect(carried).toBeGreaterThanOrEqual(4);
+    expect(supplies['frag']).toBe(0);
+  });
+
+  it('still issues a standard kit when the stash is empty', async () => {
+    const { deploy } = await import('@/game/deploy');
+    const { createMercState } = await import('@/sim/spawn');
+    const { SECTORS } = await import('@/data/sectors');
+
+    const dep = deploy({
+      seed: 99,
+      sector: SECTORS[0]!,
+      squad: [createMercState('nine')],
+      supplies: {},
+    });
+    const u = dep.squad[0]!;
+    // Everyone carries a noisemaker — it is the counterplay to the noise system.
+    expect(u.inventory).toContain('chattercan');
+  });
+});

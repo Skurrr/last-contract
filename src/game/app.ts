@@ -239,6 +239,9 @@ export class App {
       squad,
       opposition: contract.against ?? sector.owner ?? null,
       hordePressure: c.hordeClock / 100,
+      // Passed by reference: deployment removes what it issues, so bought ordnance is
+      // actually spent rather than duplicated every time the squad goes out.
+      supplies: c.stash.consumables,
     });
 
     this.enterBattle(dep.battle, dep.squad);
