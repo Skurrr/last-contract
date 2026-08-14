@@ -166,6 +166,46 @@ export class Pix {
     }
   }
 
+  /**
+   * Filled ellipse, alpha-blended over whatever is already there.
+   *
+   * Use this rather than `ellipse` for anything translucent: `ellipse` writes pixels
+   * outright, so painting a shadow with it erases the face underneath instead of darkening
+   * it, and painting with alpha 0 punches a permanent hole.
+   */
+  ellipseBlend(cx: number, cy: number, rx: number, ry: number, c: RGBA): void {
+    for (let y = Math.floor(cy - ry); y <= Math.ceil(cy + ry); y++) {
+      for (let x = Math.floor(cx - rx); x <= Math.ceil(cx + rx); x++) {
+        const nx = (x + 0.5 - cx) / rx;
+        const ny = (y + 0.5 - cy) / ry;
+        if (nx * nx + ny * ny <= 1) this.blend(x, y, c);
+      }
+    }
+  }
+
+  /** An elliptical ring: fills between the outer and inner radii, leaving the middle alone. */
+  ellipseRing(
+    cx: number,
+    cy: number,
+    rx: number,
+    ry: number,
+    innerRx: number,
+    innerRy: number,
+    c: RGBA,
+  ): void {
+    for (let y = Math.floor(cy - ry); y <= Math.ceil(cy + ry); y++) {
+      for (let x = Math.floor(cx - rx); x <= Math.ceil(cx + rx); x++) {
+        const nx = (x + 0.5 - cx) / rx;
+        const ny = (y + 0.5 - cy) / ry;
+        if (nx * nx + ny * ny > 1) continue;
+        const ix = (x + 0.5 - cx) / innerRx;
+        const iy = (y + 0.5 - cy) / innerRy;
+        if (ix * ix + iy * iy <= 1) continue;
+        this.set(x, y, c);
+      }
+    }
+  }
+
   /** Mirror the left half onto the right. Gives sprites clean bilateral symmetry. */
   mirrorX(): void {
     const half = Math.floor(this.w / 2);

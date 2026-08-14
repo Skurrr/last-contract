@@ -189,8 +189,9 @@ function drawHeadgear(p: Pix, look: UnitLook): void {
     }
     case 'hood': {
       const c = shade(look.cloth, -0.25);
-      p.ellipse(8, 2.8, 3.7, 2.6, c);
-      p.ellipse(8, 4.2, 2.4, 2.2, { r: 0, g: 0, b: 0, a: 90 }); // shadowed face
+      // A ring, so the hood frames the face instead of painting over it.
+      p.ellipseRing(8, 3.4, 4, 3.4, 2.6, 2.4, c);
+      p.ellipseBlend(8, 4.2, 2.4, 2.2, { r: 0, g: 0, b: 0, a: 70 }); // face in shadow
       break;
     }
     case 'beret': {
@@ -471,10 +472,13 @@ function drawPortraitHeadgear(p: Pix, look: UnitLook): void {
     }
     case 'hood': {
       const c = shade(look.cloth, -0.22);
-      p.ellipse(16, 10, 11, 10, c);
-      p.ellipse(16, 15, 8, 8, { r: 0, g: 0, b: 0, a: 0 });
-      p.ellipse(16, 15, 8.4, 8.4, { r: 0, g: 0, b: 0, a: 70 });
-      p.ellipse(16, 16, 7.6, 8, { r: 0, g: 0, b: 0, a: 0 });
+      // Draw the hood as a ring around the face opening. The previous version cut the hole
+      // with a zero-alpha ellipse, which does not clear a region so much as delete it — the
+      // face was erased and the portrait came back as a dark blob.
+      p.ellipseRing(16, 12, 11.5, 11, 8.2, 8.6, c);
+      p.ellipseRing(16, 12, 11.5, 11, 10, 9.6, shade(c, 0.16));
+      // The face keeps its detail; it just sits in shadow.
+      p.ellipseBlend(16, 15, 8, 8.4, { r: 10, g: 12, b: 14, a: 64 });
       break;
     }
     case 'beret': {
